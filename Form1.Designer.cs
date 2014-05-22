@@ -52,6 +52,8 @@
             this.перевернутьНормалиToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
             this.удратьИндексациюToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+            this.удалениеНевидимыхГранейToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1.SuspendLayout();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -158,10 +160,12 @@
             this.нормализацияToolStripMenuItem,
             this.пересчитатьНормалиToolStripMenuItem,
             this.перевернутьНормалиToolStripMenuItem,
-            this.удратьИндексациюToolStripMenuItem});
+            this.удратьИндексациюToolStripMenuItem,
+            this.toolStripSeparator2,
+            this.удалениеНевидимыхГранейToolStripMenuItem});
             this.генерацияToolStripMenuItem.Name = "генерацияToolStripMenuItem";
-            this.генерацияToolStripMenuItem.Size = new System.Drawing.Size(77, 20);
-            this.генерацияToolStripMenuItem.Text = "Генерация";
+            this.генерацияToolStripMenuItem.Size = new System.Drawing.Size(98, 20);
+            this.генерацияToolStripMenuItem.Text = "Работа с Mesh";
             this.генерацияToolStripMenuItem.Click += new System.EventHandler(this.генерацияToolStripMenuItem_Click);
             // 
             // икосаэдрToolStripMenuItem
@@ -241,6 +245,18 @@
             this.удратьИндексациюToolStripMenuItem.Text = "Убрать индексацию";
             this.удратьИндексациюToolStripMenuItem.Click += new System.EventHandler(this.удратьИндексациюToolStripMenuItem_Click);
             // 
+            // toolStripSeparator2
+            // 
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            this.toolStripSeparator2.Size = new System.Drawing.Size(229, 6);
+            // 
+            // удалениеНевидимыхГранейToolStripMenuItem
+            // 
+            this.удалениеНевидимыхГранейToolStripMenuItem.Name = "удалениеНевидимыхГранейToolStripMenuItem";
+            this.удалениеНевидимыхГранейToolStripMenuItem.Size = new System.Drawing.Size(232, 22);
+            this.удалениеНевидимыхГранейToolStripMenuItem.Text = "Удаление невидимых граней";
+            this.удалениеНевидимыхГранейToolStripMenuItem.Click += new System.EventHandler(this.удалениеНевидимыхГранейToolStripMenuItem_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -289,6 +305,8 @@
         private System.Windows.Forms.ToolStripMenuItem перевернутьНормалиToolStripMenuItem;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel1;
         private System.Windows.Forms.ToolStripMenuItem удратьИндексациюToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+        private System.Windows.Forms.ToolStripMenuItem удалениеНевидимыхГранейToolStripMenuItem;
     }
 }
 

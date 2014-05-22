@@ -49,7 +49,7 @@ namespace SimpleSTL
             const vec3 ambient = vec3( 0.1, 0.1, 0.1 );
             const vec3 lightVecNormalized = normalize( vec3( 0.5, 0.5, 2 ) );
             const vec3 lightColor = vec3( 0.7, 0.7, 0.7 );
-            const vec3 lightColorRefl = vec3( 1.0, 0.3, 0.2 );
+            const vec3 lightColorRefl = vec3( 0.7, 0.7, 0.0 );
  
             in vec3 normal;
             in vec4 position;
@@ -111,14 +111,11 @@ namespace SimpleSTL
         private Matrix4 rotator = Matrix4.Identity;
         void glControl1_MouseWheel(object sender, MouseEventArgs e) {
             if (lastW > 0) {
-                FarOffset--;
-                if (Keyboard.GetState()[Key.ShiftLeft]) {
-                    FarOffset-= 9;
-                }
+                FarOffset -= (int)farestPoint / 4 + 1;
             }
             if (lastW < 0)
             {
-                FarOffset++;
+                FarOffset += (int)farestPoint / 4 + 1;
                 if (Keyboard.GetState()[Key.ShiftLeft]) {
                     FarOffset += 9;
                 }
@@ -219,9 +216,11 @@ namespace SimpleSTL
             GL.UniformMatrix4(shaderPLocation_, false, ref projection);
             if (wire) {
                 GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+                GL.CullFace(CullFaceMode.FrontAndBack);
             }
             else {
-                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+                GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill);
+                GL.CullFace(CullFaceMode.Back);
             }
 
             GL.Enable(EnableCap.DepthTest);
@@ -328,6 +327,16 @@ namespace SimpleSTL
         {
             MainMesh_.UnIndex();
             MainMesh_.RecalcNormals();
+        }
+
+        private IAsyncResult arRoberts;
+        private Func<Mesh, Mesh> Rdelegate;
+        private void удалениеНевидимыхГранейToolStripMenuItem_Click(object sender, EventArgs e) {
+            if (arRoberts == null || arRoberts.IsCompleted) {
+                Rdelegate = MeshTools.RobertsSimplify;
+                arRoberts = Rdelegate.BeginInvoke(MainMesh_, null, null);
+            }
+            
         }
     }
 }
