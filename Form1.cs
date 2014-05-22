@@ -9,6 +9,8 @@ using System.Windows.Forms;
 using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Input;
+using MouseEventArgs = System.Windows.Forms.MouseEventArgs;
 
 namespace SimpleSTL
 {
@@ -46,7 +48,8 @@ namespace SimpleSTL
  
             const vec3 ambient = vec3( 0.1, 0.1, 0.1 );
             const vec3 lightVecNormalized = normalize( vec3( 0.5, 0.5, 2 ) );
-            const vec3 lightColor = vec3( 1.0, 0.8, 0.2 );
+            const vec3 lightColor = vec3( 0.7, 0.7, 0.7 );
+            const vec3 lightColorRefl = vec3( 1.0, 0.3, 0.2 );
  
             in vec3 normal;
             in vec4 position;
@@ -56,7 +59,8 @@ namespace SimpleSTL
             void main(void)
             {
               float diffuse = clamp( dot( lightVecNormalized, normalize( normal ) ), 0.0, 1.0 );
-              out_frag_color = vec4( ambient + diffuse * lightColor, 1.0 );
+              float diffuseRefl = clamp( dot( lightVecNormalized, normalize( -normal ) ), 0.0, 1.0 );
+              out_frag_color = vec4( ambient + diffuse * lightColor + diffuseRefl*lightColorRefl, 1.0 );
             }";
 
         public Form1()
@@ -104,13 +108,20 @@ namespace SimpleSTL
 
         private int lastW;
         private int FarOffset = 10;
+        private Matrix4 rotator = Matrix4.Identity;
         void glControl1_MouseWheel(object sender, MouseEventArgs e) {
             if (lastW > 0) {
                 FarOffset--;
+                if (Keyboard.GetState()[Key.ShiftLeft]) {
+                    FarOffset-= 9;
+                }
             }
             if (lastW < 0)
             {
                 FarOffset++;
+                if (Keyboard.GetState()[Key.ShiftLeft]) {
+                    FarOffset += 9;
+                }
             }
             
             lastW = e.Delta;
@@ -154,9 +165,23 @@ namespace SimpleSTL
             if (fi.Extension == ".obj") {
                 MainMesh_.loadOBJ(fi.FullName);
                 MainMesh_.RecalcNormals();
+                AutoZoom();
                 Text = "SimpleSTL - " + fi.Name;
                 return;
             }
+            if (fi.Extension == ".stl")
+            {
+                MainMesh_.loadSTL(fi.FullName);
+                MainMesh_.RecalcNormals();
+                AutoZoom();
+                Text = "SimpleSTL - " + fi.Name;
+                return;
+            }
+        }
+
+        private void AutoZoom() {
+            farestPoint = MainMesh_.FarestPoint();
+            FarOffset = (int) (farestPoint*10.0f + 1);
         }
 
         private void сохранитьToolStripMenuItem_Click(object sender, EventArgs e) {
@@ -169,26 +194,28 @@ namespace SimpleSTL
             MainMesh_.saveSTL(saveFileDialog1.FileName);
         }
 
+        private float farestPoint;
         private void UpdateTooltip() {
-            toolStripStatusLabel1.Text = string.Format("Model: v = {0} i = {1}", MainMesh_.Verteces.Count, MainMesh_.Indeces.Count);
+            toolStripStatusLabel1.Text = string.Format("Model: v = {0} i = {1} CameraOffset: {2} FarestPoint: {3}", MainMesh_.Verteces.Count, MainMesh_.Indeces.Count, FarOffset, farestPoint);
         }
 
+        private Matrix4 viewModel, mult;
         private void timer1_Tick(object sender, EventArgs e)
         {
             UpdateTooltip();
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.ClearColor(204 / 255.0F, 1.0f, 1.0f, 1.0f);
 
-            Matrix4 model = Matrix4.CreateRotationY(rotY) * Matrix4.CreateRotationZ(rotZ);
-            Matrix4 view = model * Matrix4.LookAt(FarOffset / 10.0f, FarOffset / 10.0f, FarOffset / 10.0f, 0, 0, 0, 0, 1, 0);
+            Matrix4 model = rotator;
+            viewModel = model * Matrix4.LookAt(FarOffset / 10.0f, FarOffset / 10.0f, FarOffset / 10.0f, 0, 0, 0, 0, 1, 0);
             Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView((float)(Math.PI / 2.0), 800.0f / 600.0f, 0.01f, 1000.0f);
-            Matrix4 mult = view*projection;
+            mult = viewModel * projection;
 
             GL.UseProgram(shaderProgramHandle_);
             
             //model *= Matrix4.CreateTranslation(FarOffset/10.0f, FarOffset/10.0f, FarOffset/10.0f);
             
-            GL.UniformMatrix4(shaderMVLocation_, false, ref view);
+            GL.UniformMatrix4(shaderMVLocation_, false, ref viewModel);
             GL.UniformMatrix4(shaderPLocation_, false, ref projection);
             if (wire) {
                 GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
@@ -202,6 +229,7 @@ namespace SimpleSTL
             MainMesh_.Render();
 
             GL.Disable(EnableCap.DepthTest);
+            GL.MatrixMode(MatrixMode.Modelview);
             GL.LoadMatrix(ref mult);
             GL.UseProgram(0);
             GL.Begin(PrimitiveType.Lines);
@@ -234,8 +262,16 @@ namespace SimpleSTL
         private void glControl1_MouseMove(object sender, MouseEventArgs e)
         {
             if (down) {
+                var right_v = rotator.Row0.Xyz;
+                var up_v = rotator.Row1.Xyz;
+                var back_v = rotator.Row2.Xyz;
+
                 rotY += (e.Location.X - preloc.X) / 100.0f;
                 rotZ -= (e.Location.Y - preloc.Y) / 100.0f;
+
+                var v = new Vector3(0.5f, 0, -0.5f);
+                v.Normalize();
+                rotator = rotator * Matrix4.CreateFromAxisAngle(new Vector3(0, 1, 0), (e.Location.X - preloc.X) / 100.0f) * Matrix4.CreateFromAxisAngle(v, (e.Location.Y - preloc.Y) / 100.0f);
             }
             preloc = e.Location;
         }
@@ -248,12 +284,14 @@ namespace SimpleSTL
         private void икосаэдрToolStripMenuItem_Click(object sender, EventArgs e) {
             MainMesh_ = Icosaohedron.GetMesh();
             MainMesh_.RecalcNormals();
+            AutoZoom();
         }
 
         private void кубToolStripMenuItem_Click(object sender, EventArgs e)
         {
             MainMesh_ = Cube.GetMesh();
             MainMesh_.RecalcNormals();
+            AutoZoom();
         }
 
         private void видToolStripMenuItem_Click(object sender, EventArgs e)
@@ -269,12 +307,12 @@ namespace SimpleSTL
         private void тесселяцияToolStripMenuItem_Click(object sender, EventArgs e) {
             MainMesh_ = MeshTools.Tesselate(1, MainMesh_);
             MainMesh_.RecalcNormals();
-
         }
 
         private void нормализацияToolStripMenuItem_Click(object sender, EventArgs e) {
             MainMesh_ = MeshTools.Normalize(MainMesh_);
             MainMesh_.RecalcNormals();
+            AutoZoom();
         }
 
         private void пересчитатьНормалиToolStripMenuItem_Click(object sender, EventArgs e)

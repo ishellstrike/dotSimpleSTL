@@ -43,7 +43,7 @@ namespace SimpleSTL
         {
             if (sm_mesh != null)
             {
-                return sm_mesh;
+                return new Mesh(sm_mesh);
             }
             var m = new Mesh();
             float magicAngle = (float)(Math.PI * 26.565 / 180);
@@ -87,7 +87,7 @@ namespace SimpleSTL
             }
 
             sm_mesh = m;
-            return m;
+            return new Mesh(m);
         }
     }
 }

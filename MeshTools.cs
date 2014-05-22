@@ -22,10 +22,10 @@ namespace SimpleSTL
             Mesh m = new Mesh(mesh);
 
 
-            for (int i = 0; i < mesh.Verteces.Count; i++) {
-                var t = mesh.Verteces[i];
+            for (int i = 0; i < m.Verteces.Count; i++) {
+                var t = m.Verteces[i];
                 t.Position.Normalize();
-                mesh.Verteces[i] = t;
+                m.Verteces[i] = t;
             }
 
             return m;

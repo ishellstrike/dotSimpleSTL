@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
 
@@ -32,8 +33,15 @@ namespace SimpleSTL {
         int BUFFER_TYPE_NORMALE = 1;
 
         public Mesh(Mesh mesh) {
-            Verteces = mesh.Verteces;
-            Indeces = mesh.Indeces;
+            Verteces = new List<VertexPositionNormalTexture>();
+            Indeces = new List<uint>();
+            for (int i = 0; i < mesh.Verteces.Count; i++) {
+                Verteces.Add(mesh.Verteces[i]);
+            }
+            for (int i = 0; i < mesh.Indeces.Count; i++)
+            {
+                Indeces.Add(mesh.Indeces[i]);
+            }
             World = mesh.World;
         }
 
@@ -140,7 +148,7 @@ namespace SimpleSTL {
                 if (file.EndOfStream || lineHeader == null)
                     break;
 
-                if (lineHeader.IndexOf("v ", StringComparison.Ordinal) == 0)
+                if (lineHeader.IndexOf("v ", StringComparison.Ordinal) != -1)
                 {
                     Vector3 vertex;
                     var parts = lineHeader.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
@@ -149,7 +157,7 @@ namespace SimpleSTL {
                     vertex.Z = Convert.ToSingle(parts[3], ifp);
                     temp_vertices.Add(vertex);
                 }
-                else if (lineHeader.IndexOf("vt ", StringComparison.Ordinal) == 0)
+                else if (lineHeader.IndexOf("vt ", StringComparison.Ordinal) != -1)
                 {
                     Vector2 uv;
                     var parts = lineHeader.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
@@ -157,7 +165,7 @@ namespace SimpleSTL {
                     uv.Y = Convert.ToSingle(parts[2], ifp);
                     temp_uvs.Add(uv);
                 }
-                else if (lineHeader.IndexOf("vn ", StringComparison.Ordinal) == 0)
+                else if (lineHeader.IndexOf("vn ", StringComparison.Ordinal) != -1)
                 {
                     Vector3 normal;
                     var parts = lineHeader.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
@@ -166,7 +174,7 @@ namespace SimpleSTL {
                     normal.Z = Convert.ToSingle(parts[3], ifp);
                     temp_normals.Add(normal);
                 }
-                else if (lineHeader.IndexOf("f ", StringComparison.Ordinal) == 0) 
+                else if (lineHeader.IndexOf("f ", StringComparison.Ordinal) != -1) 
                 {
                     var parts = lineHeader.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                     int i = 0;
@@ -298,6 +306,135 @@ namespace SimpleSTL {
                     Indeces[i] = (uint) i;
                 }
             }
+        }
+
+        public void loadSTL(string path) {
+            VertexPositionNormalTexture vertex1 = new VertexPositionNormalTexture();
+            VertexPositionNormalTexture vertex2 = new VertexPositionNormalTexture();
+            VertexPositionNormalTexture vertex3 = new VertexPositionNormalTexture();
+            int phase = -1; //0 normal, 1 nothing, 2 3 4 vertex, 5 6 nothing
+            int type = -1; //0 ascii, 1 binary
+            Verteces.Clear();
+            Indeces.Clear();
+
+            StreamReader file = File.OpenText(path);
+            string lh = file.ReadLine();
+            if (lh != null && lh.IndexOf("solid ", StringComparison.Ordinal) != -1) {
+                type = 0;
+            }
+            else {
+                type = 1;
+            }
+            file.Close();
+
+           
+
+            if (type == 0) {
+                file = File.OpenText(path);
+                while (true) {
+                    string lineHeader = file.ReadLine();
+                    if (file.EndOfStream || lineHeader == null)
+                        break;
+
+                    if (lineHeader.IndexOf("facet normal ", StringComparison.Ordinal) != -1) {
+                        phase = 0;
+                    }
+
+                    switch (phase) {
+                        case 0:
+                            var parts = lineHeader.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries);
+                            vertex1.Normal = new Vector3(Convert.ToSingle(parts[2], ifp),
+                                                         Convert.ToSingle(parts[3], ifp),
+                                                         Convert.ToSingle(parts[4], ifp));
+                            break;
+                        case 2:
+                            parts = lineHeader.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            vertex1.Position = new Vector3(Convert.ToSingle(parts[1], ifp),
+                                                           Convert.ToSingle(parts[2], ifp),
+                                                           Convert.ToSingle(parts[3], ifp));
+                            break;
+                        case 3:
+                            parts = lineHeader.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            vertex2.Position = new Vector3(Convert.ToSingle(parts[1], ifp),
+                                                           Convert.ToSingle(parts[2], ifp),
+                                                           Convert.ToSingle(parts[3], ifp));
+                            vertex2.Normal = vertex1.Normal;
+                            break;
+                        case 4:
+                            parts = lineHeader.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            vertex3.Position = new Vector3(Convert.ToSingle(parts[1], ifp),
+                                                           Convert.ToSingle(parts[2], ifp),
+                                                           Convert.ToSingle(parts[3], ifp));
+                            vertex3.Normal = vertex1.Normal;
+                            Verteces.Add(vertex1);
+                            Verteces.Add(vertex2);
+                            Verteces.Add(vertex3);
+                            break;
+                    }
+                    phase++;
+                }
+                file.Close();
+            }
+            else {
+                var bfile = File.OpenRead(path);
+                bfile.Read(new byte[80], 0, 80); //80b header
+                var reader32 = new byte[4];
+                bfile.Read(reader32, 0, 4);
+                uint ntri = BitConverter.ToUInt32(reader32, 0);
+                for (int i = 0; i < ntri; i++) {
+                    bfile.Read(reader32, 0, 4);
+                    vertex1.Normal.X = BitConverter.ToSingle(reader32, 0);
+                    bfile.Read(reader32, 0, 4);
+                    vertex1.Normal.Y = BitConverter.ToSingle(reader32, 0);
+                    bfile.Read(reader32, 0, 4);
+                    vertex1.Normal.Z = BitConverter.ToSingle(reader32, 0);
+
+                    bfile.Read(reader32, 0, 4);
+                    vertex1.Position.X = BitConverter.ToSingle(reader32, 0);
+                    bfile.Read(reader32, 0, 4);
+                    vertex1.Position.Y = BitConverter.ToSingle(reader32, 0);
+                    bfile.Read(reader32, 0, 4);
+                    vertex1.Position.Z = BitConverter.ToSingle(reader32, 0);
+
+                    bfile.Read(reader32, 0, 4);
+                    vertex2.Position.X = BitConverter.ToSingle(reader32, 0);
+                    bfile.Read(reader32, 0, 4);
+                    vertex2.Position.Y = BitConverter.ToSingle(reader32, 0);
+                    bfile.Read(reader32, 0, 4);
+                    vertex2.Position.Z = BitConverter.ToSingle(reader32, 0);
+                    vertex2.Normal = vertex1.Normal;
+
+                    bfile.Read(reader32, 0, 4);
+                    vertex3.Position.X = BitConverter.ToSingle(reader32, 0);
+                    bfile.Read(reader32, 0, 4);
+                    vertex3.Position.Y = BitConverter.ToSingle(reader32, 0);
+                    bfile.Read(reader32, 0, 4);
+                    vertex3.Position.Z = BitConverter.ToSingle(reader32, 0);
+                    vertex3.Normal = vertex1.Normal;
+
+                    Verteces.Add(vertex1);
+                    Verteces.Add(vertex2);
+                    Verteces.Add(vertex3);
+
+                    bfile.Read(reader32, 0, 2);
+                }
+                bfile.Close();
+            }
+            
+            for (int i = 0; i < Verteces.Count; i++) {
+                Indeces.Add((uint) i);
+            }
+        }
+
+        public float FarestPoint() {
+            float max = 0;
+            for (int i = 0; i < Verteces.Count; i++) {
+                var t = Verteces[i].Position.LengthFast;
+                if (max < t) {
+                    max = t;
+                }
+            }
+            return max;
         }
 
         public bool saveSTL(string path) {

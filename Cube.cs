@@ -30,7 +30,7 @@ namespace SimpleSTL {
         {
             if (sm_mesh != null)
             {
-                return sm_mesh;
+                return new Mesh(sm_mesh);
             }
 
             Mesh m = new Mesh();
@@ -63,7 +63,7 @@ namespace SimpleSTL {
             }
 
             sm_mesh = m;
-            return sm_mesh;
+            return new Mesh(m);
         }
     }
 }
