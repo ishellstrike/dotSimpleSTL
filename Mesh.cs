@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using OpenTK;
+using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 
 namespace SimpleSTL {
@@ -28,10 +29,6 @@ namespace SimpleSTL {
            
         }
 
-        int BUFFER_TYPE_VERTEX = 0;
-        int BUFFER_TYPE_TEXTCOORD = 2;
-        int BUFFER_TYPE_NORMALE = 1;
-
         public Mesh(Mesh mesh) {
             Verteces = new List<VertexPositionNormalTexture>();
             Indeces = new List<uint>();
@@ -45,70 +42,34 @@ namespace SimpleSTL {
             World = mesh.World;
         }
 
-        public void Bind()
-        {
-            if (Indeces.Count == 0) {
-                return;
-            }
-            if (m_vbo != null)
-            {
-                GL.BindVertexArray(0);
-                GL.DisableVertexAttribArray(BUFFER_TYPE_VERTEX);
-                GL.DisableVertexAttribArray(BUFFER_TYPE_TEXTCOORD);
-                GL.DisableVertexAttribArray(BUFFER_TYPE_NORMALE);
-
-                GL.DeleteBuffers(2, m_vbo);
-                GL.DeleteVertexArrays(1, ref m_vao);
-                m_vao = 0;
-            }
-
-            if (m_vao == 0)
-            {
-                GL.GenVertexArrays(1, out m_vao);
-                GL.BindVertexArray(m_vao);
-                m_vbo = new int[2];
-                GL.GenBuffers(2, m_vbo);
-            }
-            else
-            {
-                GL.BindVertexArray(m_vao);
-            }
-
-            int stride = VertexPositionNormalTexture.Size;
-            int offset = 0;
-            GL.BindBuffer(BufferTarget.ArrayBuffer, m_vbo[0]);
-            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(VertexPositionNormalTexture.Size * Verteces.Count), Verteces.ToArray(), BufferUsageHint.StreamDraw);
-            GL.EnableVertexAttribArray(BUFFER_TYPE_VERTEX);
-            GL.BindAttribLocation(4, 1, "vertex_position");  
-            GL.VertexAttribPointer(BUFFER_TYPE_VERTEX, 3, VertexAttribPointerType.Float, false, stride, (offset)); offset += Vector3.SizeInBytes;
-            GL.EnableVertexAttribArray(BUFFER_TYPE_TEXTCOORD);
-            GL.VertexAttribPointer(BUFFER_TYPE_TEXTCOORD, 2, VertexAttribPointerType.Float, false, stride, (offset)); offset += Vector2.SizeInBytes;
-            GL.EnableVertexAttribArray(BUFFER_TYPE_NORMALE);
-            GL.BindAttribLocation(4, 1, "vertex_normal");  
-            GL.VertexAttribPointer(BUFFER_TYPE_NORMALE, 3, VertexAttribPointerType.Float, false, stride, (offset));
-            GL.EnableVertexAttribArray(0);
-
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, m_vbo[1]);
-            GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(sizeof(int) * Indeces.Count), Indeces.ToArray(), BufferUsageHint.StreamDraw);
-        }
-
-        public void Render()
+        public void Render(Matrix4 mvp)
         {
             if (Verteces.Count == 0)
             {
                 return;
             }
-            GL.BindVertexArray(m_vao);
-            GL.DrawElements(PrimitiveType.Triangles, Indeces.Count, DrawElementsType.UnsignedInt, IntPtr.Zero); 
-            //for (int i = 0; i < Verteces.Count -2; i+= 3) {
-            //    GL.Begin(PrimitiveType.Triangles);
-            //    GL.Color4(new Color4(Verteces[i].Normal.X, Verteces[i].Normal.X, Verteces[i].Normal.X, 1));
-            //    GL.Normal3(Verteces[i].Normal);
-            //    GL.Vertex3(Verteces[i].Position);
-            //    GL.Vertex3(Verteces[i+1].Position);
-            //    GL.Vertex3(Verteces[i+2].Position);
-            //     GL.End();
-            //}
+
+            Vector3 ambient = new Vector3( 0.1f, 0.1f, 0.1f );
+            Vector3 lightVecNormalized = Vector3.Normalize( new Vector3( 0.5f, 0.5f, 2 ) );
+            Vector3 lightColor = new Vector3( 0.7f, 0.7f, 0.7f );
+            Vector3 lightColorRefl = new Vector3( 0.7f, 0.7f, 0.0f );
+
+            GL.Begin(PrimitiveType.Triangles);
+            for (int i = 0; i < Indeces.Count; i += 3)
+            {
+                VertexPositionNormalTexture v0 = Verteces[(int)Indeces[i]];
+                var normal = Vector4.Transform(new Vector4(v0.Normal, 0), mvp).Xyz;
+                float diffuse = SstlHelper.Clamp(Vector3.Dot( lightVecNormalized, Vector3.Normalize( normal ) ), 0.0f, 1.0f );
+                float diffuseRefl = SstlHelper.Clamp(Vector3.Dot(lightVecNormalized, Vector3.Normalize(-normal)), 0.0f, 1.0f);
+                var outFragColor = new Vector4((ambient + diffuse * lightColor + diffuseRefl * lightColorRefl) * v0.Ao, 1.0f);
+                GL.Color4(outFragColor);
+                GL.Normal3(v0.Normal);
+                GL.Vertex3(v0.Position);
+                GL.Vertex3(Verteces[(int) Indeces[i+1]].Position);
+                GL.Vertex3(Verteces[(int) Indeces[i+2]].Position);
+                
+            }
+            GL.End();
            
         }
 
@@ -469,6 +430,14 @@ namespace SimpleSTL {
                 var vertex = Verteces[i];
                 vertex.Normal *= -1;
                 Verteces[i] = vertex;
+            }
+        }
+
+        public void ResetAO() {
+            for (int i = 0; i < Verteces.Count; i++) {
+                var v = Verteces[i];
+                v.Ao = 1.0f;
+                Verteces[i] = v;
             }
         }
     };

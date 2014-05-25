@@ -15,10 +15,6 @@ using MouseEventArgs = System.Windows.Forms.MouseEventArgs;
 namespace SimpleSTL
 {
     public partial class Form1 : Form {
-        private int vertexShaderHandle_;
-        private int fragmentShaderHandle_;
-        private int shaderProgramHandle_;
-        private int shaderMVLocation_, shaderPLocation_;
         private Mesh MainMesh_;
         private IFormatProvider ifp = new CultureInfo("en-US");
 
@@ -72,9 +68,9 @@ namespace SimpleSTL
         {
             int w = glControl1.Width;
             int h = glControl1.Height;
-            GL.MatrixMode(MatrixMode.Projection);
-            GL.LoadIdentity();
-            GL.Ortho(-1, 1, -1, 1, -1, 1); // Bottom-left corner pixel has coordinate (0, 0)
+            //GL.MatrixMode(MatrixMode.Projection);
+            //GL.LoadIdentity();
+            //GL.Ortho(-1, 1, -1, 1, -1, 1); // Bottom-left corner pixel has coordinate (0, 0)
             GL.Viewport(0, 0, w, h); // Use all of the glControl painting area
         }
 
@@ -85,12 +81,6 @@ namespace SimpleSTL
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            CreateShaders();
-            CreateProgram();
-            GL.UseProgram(shaderProgramHandle_);
-            shaderMVLocation_ = GL.GetUniformLocation(shaderProgramHandle_, "modelview_matrix");
-            shaderPLocation_ = GL.GetUniformLocation(shaderProgramHandle_, "projection_matrix");
-            
             MainMesh_ = new Mesh();
             GL.Enable(EnableCap.DepthTest);
             GL.DepthFunc(DepthFunction.Less);
@@ -124,35 +114,6 @@ namespace SimpleSTL
             lastW = e.Delta;
         }
 
-        private void CreateShaders()
-        {
-            vertexShaderHandle_ = GL.CreateShader(ShaderType.VertexShader);
-            fragmentShaderHandle_ = GL.CreateShader(ShaderType.FragmentShader);
-
-            GL.ShaderSource(vertexShaderHandle_, VertexShaderSource);
-            GL.ShaderSource(fragmentShaderHandle_, FragmentShaderSource);
-
-            GL.CompileShader(vertexShaderHandle_);
-            string s1 = GL.GetShaderInfoLog(vertexShaderHandle_);
-            GL.CompileShader(fragmentShaderHandle_);
-            string s2 = GL.GetShaderInfoLog(fragmentShaderHandle_);
-
-            GL.CreateProgram();
-        }
-
-        private void CreateProgram()
-        {
-            shaderProgramHandle_ = GL.CreateProgram();
-
-            GL.AttachShader(shaderProgramHandle_, vertexShaderHandle_);
-            GL.AttachShader(shaderProgramHandle_, fragmentShaderHandle_);
-
-            GL.LinkProgram(shaderProgramHandle_);
-
-            string programInfoLog;
-            GL.GetProgramInfoLog(shaderProgramHandle_, out programInfoLog);
-        }
-
         private void открытьToolStripMenuItem_Click(object sender, EventArgs e) {
             openFileDialog1.ShowDialog();
         }
@@ -161,19 +122,19 @@ namespace SimpleSTL
             var fi = new FileInfo(openFileDialog1.FileName);
             if (fi.Extension == ".obj") {
                 MainMesh_.loadOBJ(fi.FullName);
-                MainMesh_.RecalcNormals();
-                AutoZoom();
+                
                 Text = "SimpleSTL - " + fi.Name;
-                return;
+                
             }
             if (fi.Extension == ".stl")
             {
                 MainMesh_.loadSTL(fi.FullName);
-                MainMesh_.RecalcNormals();
-                AutoZoom();
                 Text = "SimpleSTL - " + fi.Name;
-                return;
+                
             }
+            MainMesh_.RecalcNormals();
+            AutoZoom();
+            MainMesh_.ResetAO();
         }
 
         private void AutoZoom() {
@@ -205,27 +166,24 @@ namespace SimpleSTL
 
             Matrix4 model = rotator;
             viewModel = model * Matrix4.LookAt(FarOffset / 10.0f, FarOffset / 10.0f, FarOffset / 10.0f, 0, 0, 0, 0, 1, 0);
-            Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView((float)(Math.PI / 2.0), 800.0f / 600.0f, 0.01f, 1000.0f);
+            Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView((float)(Math.PI / 2.0), glControl1.Width / (float) glControl1.Height, 0.01f, 1000.0f);
             mult = viewModel * projection;
 
-            GL.UseProgram(shaderProgramHandle_);
             
             //model *= Matrix4.CreateTranslation(FarOffset/10.0f, FarOffset/10.0f, FarOffset/10.0f);
             
-            GL.UniformMatrix4(shaderMVLocation_, false, ref viewModel);
-            GL.UniformMatrix4(shaderPLocation_, false, ref projection);
             if (wire) {
                 GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
                 GL.CullFace(CullFaceMode.FrontAndBack);
             }
             else {
                 GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill);
-                GL.CullFace(CullFaceMode.Back);
+                GL.CullFace(CullFaceMode.FrontAndBack);
             }
 
             GL.Enable(EnableCap.DepthTest);
-            MainMesh_.Bind();
-            MainMesh_.Render();
+
+            MainMesh_.Render(mult);
 
             GL.Disable(EnableCap.DepthTest);
             GL.MatrixMode(MatrixMode.Modelview);
@@ -284,6 +242,7 @@ namespace SimpleSTL
             MainMesh_ = Icosaohedron.GetMesh();
             MainMesh_.RecalcNormals();
             AutoZoom();
+            MainMesh_.ResetAO();
         }
 
         private void кубToolStripMenuItem_Click(object sender, EventArgs e)
@@ -291,6 +250,7 @@ namespace SimpleSTL
             MainMesh_ = Cube.GetMesh();
             MainMesh_.RecalcNormals();
             AutoZoom();
+            MainMesh_.ResetAO();
         }
 
         private void видToolStripMenuItem_Click(object sender, EventArgs e)
@@ -306,12 +266,14 @@ namespace SimpleSTL
         private void тесселяцияToolStripMenuItem_Click(object sender, EventArgs e) {
             MainMesh_ = MeshTools.Tesselate(1, MainMesh_);
             MainMesh_.RecalcNormals();
+            MainMesh_.ResetAO();
         }
 
         private void нормализацияToolStripMenuItem_Click(object sender, EventArgs e) {
             MainMesh_ = MeshTools.Normalize(MainMesh_);
             MainMesh_.RecalcNormals();
             AutoZoom();
+            MainMesh_.ResetAO();
         }
 
         private void пересчитатьНормалиToolStripMenuItem_Click(object sender, EventArgs e)
@@ -337,6 +299,27 @@ namespace SimpleSTL
                 arRoberts = Rdelegate.BeginInvoke(MainMesh_, null, null);
             }
             
+        }
+
+        private void сеткаToolStripMenuItem_Click(object sender, EventArgs e) {
+            wire = true;
+        }
+
+        private void заливкаToolStripMenuItem_Click(object sender, EventArgs e) {
+            wire = false;
+        }
+
+        private void смешанныйToolStripMenuItem_Click(object sender, EventArgs e) {
+            wire = false;
+        }
+
+        private void пересчетAOToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            OcclusionMap.AmbientOcclusionRecalc(MainMesh_);
+        }
+
+        private void сбросAOToolStripMenuItem_Click(object sender, EventArgs e) {
+            MainMesh_.ResetAO();
         }
     }
 }

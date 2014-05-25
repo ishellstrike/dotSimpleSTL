@@ -5,12 +5,14 @@ namespace SimpleSTL {
         public Vector3 Position;
         public Vector2 Uv;
         public Vector3 Normal;
+        public float Ao;
 
         public VertexPositionNormalTexture(Vector3 pos, Vector3 norm, Vector2 uv)
         {
             Position = pos;
             Normal = norm;
             Uv = uv;
+            Ao = 1;
         }
 
         public static VertexPositionNormalTexture operator +(VertexPositionNormalTexture a, VertexPositionNormalTexture b)
