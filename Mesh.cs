@@ -61,7 +61,7 @@ namespace SimpleSTL {
                 var normal = Vector4.Transform(new Vector4(v0.Normal, 0), mvp).Xyz;
                 float diffuse = SstlHelper.Clamp(Vector3.Dot( lightVecNormalized, Vector3.Normalize( normal ) ), 0.0f, 1.0f );
                 float diffuseRefl = SstlHelper.Clamp(Vector3.Dot(lightVecNormalized, Vector3.Normalize(-normal)), 0.0f, 1.0f);
-                var outFragColor = new Vector4((ambient + diffuse * lightColor + diffuseRefl * lightColorRefl) * v0.Ao, 1.0f);
+                var outFragColor = new Vector4(ambient + (diffuse * lightColor + diffuseRefl * lightColorRefl) * v0.Ao, 1.0f);
                 GL.Color4(outFragColor);
                 GL.Normal3(v0.Normal);
                 GL.Vertex3(v0.Position);

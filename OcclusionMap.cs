@@ -10,38 +10,52 @@ namespace SimpleSTL
         public List<float> OcclusionFactor;
 
         public static void AmbientOcclusionRecalc(Mesh mesh) {
+            var squares = new float[mesh.Verteces.Count];
+            for (int i = 0; i < mesh.Verteces.Count; i += 3) {
+                var v0 = mesh.Verteces[i];
+                var v1 = mesh.Verteces[i + 1];
+                var v2 = mesh.Verteces[i + 2];
+
+                var a = (v0.Position - v1.Position).LengthFast;
+                var b = (v1.Position - v2.Position).LengthFast;
+                var c = (v0.Position - v2.Position).LengthFast;
+                var s = (a + b + c) / 2.0f;
+                squares[i] = squares[i+1] = squares[i+2] = (float)(Math.Sqrt(s * (s - a) * (s - b) * (s - c))/Math.PI);
+
+            }
+
             for (int i = 0; i < mesh.Verteces.Count; i+=3) {
                 var v0 = mesh.Verteces[i];
                 var v1 = mesh.Verteces[i+1];
                 var v2 = mesh.Verteces[i+2];
-                
                 var center1 = (v0.Position + v1.Position + v2.Position)/3;
+
                 v0.Ao = v1.Ao = v2.Ao = 1.0f;
-                for (int j = 0; j < mesh.Verteces.Count; j += 3*3*3) {
+                float res = 0;
+                for (int j = 0; j < mesh.Verteces.Count; j += 3*9) {
                     if (j < i || j > i+2) {
                         var vv0 = mesh.Verteces[j];
                         var vv1 = mesh.Verteces[j + 1];
                         var vv2 = mesh.Verteces[j + 2];
                         var center2 = (vv0.Position + vv1.Position + vv2.Position)/3;
                         var rsq = (center1 - center2).LengthSquared;
-                        var a = (vv0.Position - vv1.Position).LengthFast;
-                        var b = (vv1.Position - vv2.Position).LengthFast;
-                        var c = (vv0.Position - vv2.Position).LengthFast;
-                        var s = (a + b + c) / 2.0f;
-                        var square = (float)Math.Sqrt(s * (s - a) * (s - b) * (s - c));
-                        var res = ElementShadow(center1, rsq, v0.Normal, vv0.Normal, square);
-                        if (float.IsNaN(res) || res == 0) {
+                        if (float.IsNaN(res))
+                        {
                             continue;
                         }
-                        v0.Ao /= 1 + res;
-                        v1.Ao /= 1 + res;
-                        v2.Ao /= 1 + res;
-
-                        mesh.Verteces[i] = v0;
-                        mesh.Verteces[i + 1] = v1;
-                        mesh.Verteces[i + 2] = v2;
+                        res  += ElementShadow(center2, rsq, v0.Normal, vv0.Normal, squares[i]);
+                        if (res >= 1) {
+                            break;
+                        } // http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter14.html
                     }
                 }
+                res = SstlHelper.Clamp(res, 1, 0);
+
+                v0.Ao = v1.Ao = v2.Ao = 1.0f - res;
+
+                mesh.Verteces[i] = v0;
+                mesh.Verteces[i + 1] = v1;
+                mesh.Verteces[i + 2] = v2;
             }
         }
 
@@ -54,11 +68,11 @@ namespace SimpleSTL
 
             // we assume that emitterArea has already been divided by PI
 
-            return (1 - Q_rsqrt(emitterArea / rSquared + 1)) *
+            return (1.0f - 1.0f/(float) Math.Sqrt(emitterArea / rSquared + 1.0f)) *
 
-                   SstlHelper.Clamp(Vector3.Dot(emitterNormal, v), 0, 1) *
+                   SstlHelper.Clamp(Vector3.Dot(emitterNormal, v), 0f, 1.0f) *
 
-                   SstlHelper.Clamp(4 * Vector3.Dot(receiverNormal, v), 0, 1);
+                   SstlHelper.Clamp(4 * Vector3.Dot(receiverNormal, v), 0f, 1.0f);
 
         }
 
