@@ -42,6 +42,7 @@ namespace SimpleSTL {
             World = mesh.World;
         }
 
+        public bool AoTest;
         public void Render(Matrix4 mvp)
         {
             if (Verteces.Count == 0)
@@ -52,25 +53,46 @@ namespace SimpleSTL {
             Vector3 ambient = new Vector3( 0.1f, 0.1f, 0.1f );
             Vector3 lightVecNormalized = Vector3.Normalize( new Vector3( 0.5f, 0.5f, 2 ) );
             Vector3 lightColor = new Vector3( 0.7f, 0.7f, 0.7f );
-            Vector3 lightColorRefl = new Vector3( 0.7f, 0.7f, 0.0f );
+            Vector3 lightColorRefl = new Vector3( 0.7f, 0.0f, 0.0f );
 
-            GL.Begin(PrimitiveType.Triangles);
-            for (int i = 0; i < Indeces.Count; i += 3)
-            {
-                VertexPositionNormalTexture v0 = Verteces[(int)Indeces[i]];
-                var normal = Vector4.Transform(new Vector4(v0.Normal, 0), mvp).Xyz;
-                float diffuse = SstlHelper.Clamp(Vector3.Dot( lightVecNormalized, Vector3.Normalize( normal ) ), 0.0f, 1.0f );
-                float diffuseRefl = SstlHelper.Clamp(Vector3.Dot(lightVecNormalized, Vector3.Normalize(-normal)), 0.0f, 1.0f);
-                var outFragColor = new Vector4(ambient + (diffuse * lightColor + diffuseRefl * lightColorRefl) * v0.Ao, 1.0f);
-                GL.Color4(outFragColor);
-                GL.Normal3(v0.Normal);
-                GL.Vertex3(v0.Position);
-                GL.Vertex3(Verteces[(int) Indeces[i+1]].Position);
-                GL.Vertex3(Verteces[(int) Indeces[i+2]].Position);
-                
+            if (!AoTest) {
+                GL.Begin(PrimitiveType.Triangles);
+                for (int i = 0; i < Indeces.Count; i += 3) {
+                    VertexPositionNormalTexture v0 = Verteces[(int) Indeces[i]];
+                    var normal = -Vector4.Transform(new Vector4(v0.Normal, 0), mvp).Xyz;
+                    float diffuse = SstlHelper.Clamp(Vector3.Dot(lightVecNormalized, Vector3.Normalize(normal)), 0.0f,
+                                                     1.0f);
+                    float diffuseRefl = SstlHelper.Clamp(Vector3.Dot(lightVecNormalized, Vector3.Normalize(-normal)),
+                                                         0.0f, 1.0f);
+                    var outFragColor = new Vector4(ambient + (diffuse*lightColor + diffuseRefl*lightColorRefl)*v0.Ao,
+                                                   1.0f);
+                    GL.Color4(outFragColor);
+                    GL.Normal3(v0.Normal);
+                    GL.Vertex3(v0.Position);
+                    GL.Vertex3(Verteces[(int) Indeces[i + 1]].Position);
+                    GL.Vertex3(Verteces[(int) Indeces[i + 2]].Position);
+
+                }
+                GL.End();
             }
-            GL.End();
-           
+            else {
+                lightColor = new Vector3(0.0f, 0.0f, 0.0f);
+                lightColorRefl = new Vector3(1.0f, 0.0f, 0.0f);
+                GL.Begin(PrimitiveType.Triangles);
+                for (int i = 0; i < Indeces.Count; i += 3)
+                {
+                    VertexPositionNormalTexture v0 = Verteces[(int)Indeces[i]];
+                    var outFragColor = new Vector4( Vector3.Lerp(lightColorRefl, lightColor, v0.Ao), 1.0f);
+                    GL.Color4(outFragColor);
+                    GL.Normal3(v0.Normal);
+                    GL.Vertex3(v0.Position);
+                    GL.Vertex3(Verteces[(int)Indeces[i + 1]].Position);
+                    GL.Vertex3(Verteces[(int)Indeces[i + 2]].Position);
+
+                }
+                GL.End();
+            }
+
         }
 
         public void Combine(Mesh com)

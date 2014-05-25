@@ -27,6 +27,37 @@ namespace SimpleSTL
             return m;
         }
 
+        public static Mesh RemoveInternal(Mesh mesh) {
+            Mesh m = new Mesh(mesh);
+            m.UnIndex();
+
+            double totalAo = 0, minAo = m.Verteces[0].Ao;
+            for (int i = 0; i < m.Verteces.Count; i+=3) {
+                totalAo += m.Verteces[i].Ao;
+                if (m.Verteces[i].Ao < minAo) {
+                    minAo = m.Verteces[i].Ao;
+                }
+            }
+            totalAo /= m.Verteces.Count;
+
+            for (int i = 0; i < m.Verteces.Count - 3; i+=3) {
+                if (m.Verteces[i].Ao < totalAo) {
+                    m.Verteces.RemoveAt(i);
+                    m.Verteces.RemoveAt(i+1);
+                    m.Verteces.RemoveAt(i+2);
+                    i -= 3;
+                }
+            }
+
+            m.Indeces.Clear();
+            for (int i = 0; i < m.Verteces.Count; i++)
+            {
+                m.Indeces.Add((uint)i);
+            }
+
+            return m;
+        }
+
         public static Mesh RobertsSimplify(Mesh mesh) {
             Mesh m = mesh;
             m.UnIndex();

@@ -120,13 +120,13 @@ namespace SimpleSTL
 
         private void openFileDialog1_FileOk(object sender, CancelEventArgs e) {
             var fi = new FileInfo(openFileDialog1.FileName);
-            if (fi.Extension == ".obj") {
+            if (fi.Extension.ToLower() == ".obj") {
                 MainMesh_.loadOBJ(fi.FullName);
                 
                 Text = "SimpleSTL - " + fi.Name;
                 
             }
-            if (fi.Extension == ".stl")
+            if (fi.Extension.ToLower() == ".stl")
             {
                 MainMesh_.loadSTL(fi.FullName);
                 Text = "SimpleSTL - " + fi.Name;
@@ -177,7 +177,7 @@ namespace SimpleSTL
                 GL.CullFace(CullFaceMode.FrontAndBack);
             }
             else {
-                GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill);
+                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
                 GL.CullFace(CullFaceMode.FrontAndBack);
             }
 
@@ -203,6 +203,15 @@ namespace SimpleSTL
 
             GL.Flush();
             glControl1.SwapBuffers();
+
+            if ((int)(OcclusionMap.AorResultTotal * 0.99f) < OcclusionMap.AorResult) {
+                toolStripProgressBar1.Value = 0;
+            }
+            else {
+                toolStripProgressBar1.Maximum = OcclusionMap.AorResultTotal;
+                toolStripProgressBar1.Value = OcclusionMap.AorResult;
+            }
+
         }
 
         private bool down;
@@ -310,16 +319,44 @@ namespace SimpleSTL
         }
 
         private void смешанныйToolStripMenuItem_Click(object sender, EventArgs e) {
-            wire = false;
+            MainMesh_.AoTest = false;
         }
 
+        private IAsyncResult aor;
         private void пересчетAOToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            OcclusionMap.AmbientOcclusionRecalc(MainMesh_);
+            if (aor == null || aor.IsCompleted) {
+                Action<Mesh> aorD = OcclusionMap.AmbientOcclusionRecalc;
+                aor = aorD.BeginInvoke(MainMesh_, null, null);
+            }
         }
 
         private void сбросAOToolStripMenuItem_Click(object sender, EventArgs e) {
             MainMesh_.ResetAO();
+        }
+
+        private void menuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+
+        }
+
+        private void тестAOToolStripMenuItem_Click(object sender, EventArgs e) {
+            MainMesh_.AoTest = true;
+        }
+
+        Mesh backup = new Mesh();
+        private void сохранитьToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            backup = new Mesh(MainMesh_);
+        }
+
+        private void загрузитьToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            MainMesh_ = new Mesh(backup);
+        }
+
+        private void удалениеВнутреннихПолигоновToolStripMenuItem_Click(object sender, EventArgs e) {
+            MainMesh_ = MeshTools.RemoveInternal(MainMesh_);
         }
     }
 }
