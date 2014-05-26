@@ -17,7 +17,7 @@ namespace SimpleSTL
         public static int NearestMod(int i, int mod) {
             var t = i%mod;
             if (t > 0) {
-                return mod * (t / mod + 1);
+                return mod * (i / mod + 1);
             }
             return i;
         }
