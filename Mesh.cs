@@ -18,6 +18,7 @@ namespace SimpleSTL {
         Matrix4 World;
         int m_vao;
         int[] m_vbo;
+        private bool changed;
         private IFormatProvider ifp = new CultureInfo("en-US");
 
         public Mesh() {
