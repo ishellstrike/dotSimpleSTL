@@ -19,7 +19,7 @@ namespace SimpleSTL
             if (t > 0) {
                 return mod * (i / mod + 1);
             }
-            return i;
+            return i; 
         }
 
         public unsafe static float Sqrt(float n)
