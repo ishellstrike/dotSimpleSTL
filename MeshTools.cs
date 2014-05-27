@@ -40,7 +40,7 @@ namespace SimpleSTL
             }
             totalAo /= m.Verteces.Count;
 
-            for (int i = 0; i < m.Verteces.Count - 3; i+=3) {
+            for (int i = 0; i < m.Verteces.Count-3; i+=3) {
                 if (m.Verteces[i].Ao < totalAo) {
                     m.Verteces.RemoveAt(i);
                     m.Verteces.RemoveAt(i+1);
@@ -167,6 +167,74 @@ namespace SimpleSTL
                 m.Indeces.Add((uint)off + 3);
                 m.Indeces.Add((uint)off + 1);
                
+
+                m.Indeces.Add((uint)off + 5);
+                m.Indeces.Add((uint)off + 2);
+                m.Indeces.Add((uint)off + 4);
+
+                m.Indeces.Add((uint)off + 3);
+                m.Indeces.Add((uint)off + 5);
+                m.Indeces.Add((uint)off + 4);
+
+                off += 6;
+            }
+            return m;
+        }
+
+        public static Mesh SmartTesselate(Mesh mesh)
+        {
+            Mesh m = new Mesh();
+
+            float size = 0;
+
+            for (int i = 0; i < mesh.Indeces.Count; i += 3)
+            {
+                size += SstlHelper.TriangleSquare(mesh.Verteces[(int)mesh.Indeces[i]],
+                                                   mesh.Verteces[(int)mesh.Indeces[i + 1]],
+                                                   mesh.Verteces[(int)mesh.Indeces[i + 2]]);
+            }
+            size /= mesh.Indeces.Count;
+
+            int off = 0;
+            for (int i = 0; i < mesh.Indeces.Count; i += 3)
+            {
+                VertexPositionNormalTexture t;
+
+                var sq = SstlHelper.TriangleSquare(mesh.Verteces[(int) mesh.Indeces[i]],
+                                                   mesh.Verteces[(int) mesh.Indeces[i + 1]],
+                                                   mesh.Verteces[(int) mesh.Indeces[i + 2]]);
+                if (sq <= size*6) {
+                    m.Verteces.Add(mesh.Verteces[(int)mesh.Indeces[i]]);
+                    m.Verteces.Add(mesh.Verteces[(int)mesh.Indeces[i + 1]]);
+                    m.Verteces.Add(mesh.Verteces[(int)mesh.Indeces[i + 2]]);
+                    m.Indeces.Add((uint)off + 0);
+                    m.Indeces.Add((uint)off + 1);
+                    m.Indeces.Add((uint)off + 2);
+                    off += 3;
+                    continue;
+                }
+
+                m.Verteces.Add(mesh.Verteces[(int)mesh.Indeces[i]]);
+                m.Verteces.Add(mesh.Verteces[(int)mesh.Indeces[i + 1]]);
+                m.Verteces.Add(mesh.Verteces[(int)mesh.Indeces[i + 2]]);
+
+                t = (mesh.Verteces[(int)mesh.Indeces[i]] + mesh.Verteces[(int)mesh.Indeces[i + 1]]) / 2;
+                m.Verteces.Add(t);
+
+                t = (mesh.Verteces[(int)mesh.Indeces[i]] + mesh.Verteces[(int)mesh.Indeces[i + 2]]) / 2;
+                m.Verteces.Add(t);
+
+                t = (mesh.Verteces[(int)mesh.Indeces[i + 1]] + mesh.Verteces[(int)mesh.Indeces[i + 2]]) / 2;
+                m.Verteces.Add(t);
+
+                m.Indeces.Add((uint)off + 0);
+                m.Indeces.Add((uint)off + 3);
+                m.Indeces.Add((uint)off + 4);
+
+                m.Indeces.Add((uint)off + 5);
+                m.Indeces.Add((uint)off + 3);
+                m.Indeces.Add((uint)off + 1);
+
 
                 m.Indeces.Add((uint)off + 5);
                 m.Indeces.Add((uint)off + 2);

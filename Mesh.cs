@@ -18,7 +18,6 @@ namespace SimpleSTL {
         Matrix4 World;
         int m_vao;
         int[] m_vbo;
-        private bool changed;
         private IFormatProvider ifp = new CultureInfo("en-US");
 
         public Mesh() {
@@ -43,8 +42,74 @@ namespace SimpleSTL {
             World = mesh.World;
         }
 
+        int BUFFER_TYPE_VERTEX = 0;
+        int BUFFER_TYPE_TEXTCOORD = 2;
+        int BUFFER_TYPE_NORMALE = 1;
+        int BUFFER_TYPE_AO = 2;
         public bool AoTest;
-        public void Render(Matrix4 mvp)
+        public void Bind(Shader basic)
+        {
+            if (Indeces.Count == 0)
+            {
+                return;
+            }
+            if (m_vbo != null)
+            {
+                GL.BindVertexArray(0);
+                GL.DisableVertexAttribArray(BUFFER_TYPE_VERTEX);
+                GL.DisableVertexAttribArray(BUFFER_TYPE_TEXTCOORD);
+                GL.DisableVertexAttribArray(BUFFER_TYPE_NORMALE);
+
+                GL.DeleteBuffers(2, m_vbo);
+                GL.DeleteVertexArrays(1, ref m_vao);
+                m_vao = 0;
+            }
+
+            if (m_vao == 0)
+            {
+                GL.GenVertexArrays(1, out m_vao);
+                GL.BindVertexArray(m_vao);
+                m_vbo = new int[2];
+                GL.GenBuffers(2, m_vbo);
+            }
+            else
+            {
+                GL.BindVertexArray(m_vao);
+            }
+
+            int stride = VertexPositionNormalTexture.Size;
+            int offset = 0;
+            GL.BindBuffer(BufferTarget.ArrayBuffer, m_vbo[0]);
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(VertexPositionNormalTexture.Size * Verteces.Count), Verteces.ToArray(), BufferUsageHint.StreamDraw);
+            GL.EnableVertexAttribArray(BUFFER_TYPE_VERTEX);
+            //GL.BindAttribLocation(basic.ID(), 1, "vertex_position");
+            GL.VertexAttribPointer(BUFFER_TYPE_VERTEX, 3, VertexAttribPointerType.Float, false, stride, (offset)); offset += Vector3.SizeInBytes;
+            GL.EnableVertexAttribArray(BUFFER_TYPE_TEXTCOORD);
+            GL.VertexAttribPointer(BUFFER_TYPE_TEXTCOORD, 2, VertexAttribPointerType.Float, false, stride, (offset)); offset += Vector2.SizeInBytes;
+            GL.EnableVertexAttribArray(BUFFER_TYPE_NORMALE);
+           // GL.BindAttribLocation(basic.ID(), 1, "vertex_normal");
+            GL.VertexAttribPointer(BUFFER_TYPE_NORMALE, 3, VertexAttribPointerType.Float, false, stride, (offset)); offset += Vector3.SizeInBytes;
+            GL.EnableVertexAttribArray(BUFFER_TYPE_NORMALE);
+           // GL.BindAttribLocation(basic.ID(), 1, "vertex_ao");
+            GL.VertexAttribPointer(BUFFER_TYPE_AO, 1, VertexAttribPointerType.Float, false, stride, (offset)); offset += sizeof(float);
+            GL.EnableVertexAttribArray(0);
+
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, m_vbo[1]);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(sizeof(uint) * Indeces.Count), Indeces.ToArray(), BufferUsageHint.StreamDraw);
+        }
+
+        public void Render()
+        {
+            if (Verteces.Count == 0)
+            {
+                return;
+            }
+            GL.BindVertexArray(m_vao);
+            GL.DrawElements(PrimitiveType.Triangles, Indeces.Count, DrawElementsType.UnsignedInt, IntPtr.Zero);
+        }
+
+        [Obsolete]
+        public void __Render(Matrix4 mvp)
         {
             if (Verteces.Count == 0)
             {

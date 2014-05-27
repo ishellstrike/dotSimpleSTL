@@ -70,11 +70,8 @@ namespace SimpleSTL
                 var v1 = mesh.Verteces[i + 1];
                 var v2 = mesh.Verteces[i + 2];
 
-                var a = (v0.Position - v1.Position).Length;
-                var b = (v1.Position - v2.Position).Length;
-                var c = (v0.Position - v2.Position).Length;
-                var s = (a + b + c) / 2.0f;
-                squares[i] = squares[i+1] = squares[i+2] = (float)(Math.Sqrt(s * (s - a) * (s - b) * (s - c))/Math.PI);
+                var sq = SstlHelper.TriangleSquare(v0, v1, v2);
+                squares[i] = squares[i + 1] = squares[i + 2] = sq;
 
             }
 

@@ -15,49 +15,9 @@ using MouseEventArgs = System.Windows.Forms.MouseEventArgs;
 namespace SimpleSTL
 {
     public partial class Form1 : Form {
-        private Mesh MainMesh_;
+        private Shader basic, shadeShader, aoTestShader;
+        private Mesh MainMesh_ = new Mesh();
         private IFormatProvider ifp = new CultureInfo("en-US");
-
-        private const string VertexShaderSource = @"
-            #version 140
-            uniform mat4 modelview_matrix;            
-            uniform mat4 projection_matrix;
- 
-            in vec3 vertex_position;
-            in vec2 vertex_uv;
-            in vec3 vertex_normal;
-
-            out vec3 normal;
-            out vec4 position;
- 
-            void main(void)
-            {
-              normal = ( modelview_matrix * vec4( vertex_normal, 0 ) ).xyz;
-              position = projection_matrix * modelview_matrix * vec4( vertex_position, 1 );
-              gl_Position = position;
-            }";
-
-        private const string FragmentShaderSource = @"
-            #version 140
- 
-            precision highp float;
- 
-            const vec3 ambient = vec3( 0.1, 0.1, 0.1 );
-            const vec3 lightVecNormalized = normalize( vec3( 0.5, 0.5, 2 ) );
-            const vec3 lightColor = vec3( 0.7, 0.7, 0.7 );
-            const vec3 lightColorRefl = vec3( 0.7, 0.7, 0.0 );
- 
-            in vec3 normal;
-            in vec4 position;
- 
-            out vec4 out_frag_color;
- 
-            void main(void)
-            {
-              float diffuse = clamp( dot( lightVecNormalized, normalize( normal ) ), 0.0, 1.0 );
-              float diffuseRefl = clamp( dot( lightVecNormalized, normalize( -normal ) ), 0.0, 1.0 );
-              out_frag_color = vec4( ambient + diffuse * lightColor + diffuseRefl*lightColorRefl, 1.0 );
-            }";
 
         public Form1()
         {
@@ -68,32 +28,32 @@ namespace SimpleSTL
         {
             int w = glControl1.Width;
             int h = glControl1.Height;
-            //GL.MatrixMode(MatrixMode.Projection);
-            //GL.LoadIdentity();
-            //GL.Ortho(-1, 1, -1, 1, -1, 1); // Bottom-left corner pixel has coordinate (0, 0)
+            GL.MatrixMode(MatrixMode.Projection);
+            GL.LoadIdentity();
+            GL.Ortho(-1, 1, -1, 1, -1, 1); // Bottom-left corner pixel has coordinate (0, 0)
             GL.Viewport(0, 0, w, h); // Use all of the glControl painting area
         }
 
         private void Form1_Resize(object sender, EventArgs e) {
+            if (logVisible) {
+                textBox1.Width = glControl1.Width/2;
+                textBox1.Left = glControl1.Left + textBox1.Width;
+                if (!textBox1.Visible) {
+                    textBox1.Show();
+                }
+            }
+            else {
+                if (textBox1.Visible) {
+                    textBox1.Hide();
+                }
+            }
             SetupViewport();
            glControl1.Invalidate();
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            MainMesh_ = new Mesh();
-            GL.Enable(EnableCap.DepthTest);
-            GL.DepthFunc(DepthFunction.Less);
-
-            GL.Enable(EnableCap.Blend);
-            GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
-            GL.ActiveTexture(TextureUnit.Texture1);
-            GL.BindTexture(TextureTarget.Texture2D, 1);
-            GL.EnableClientState(ArrayCap.VertexArray);
-            GL.EnableClientState(ArrayCap.NormalArray);
-
-            glControl1.SwapBuffers();
-            glControl1.MouseWheel += glControl1_MouseWheel;
+            textBox1.Hide();
         }
 
         private int lastW;
@@ -161,29 +121,35 @@ namespace SimpleSTL
         private void timer1_Tick(object sender, EventArgs e)
         {
             UpdateTooltip();
+
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.ClearColor(204 / 255.0F, 1.0f, 1.0f, 1.0f);
 
             Matrix4 model = rotator;
             viewModel = model * Matrix4.LookAt(FarOffset / 10.0f, FarOffset / 10.0f, FarOffset / 10.0f, 0, 0, 0, 0, 1, 0);
-            Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView((float)(Math.PI / 2.0), glControl1.Width / (float) glControl1.Height, 0.01f, 1000.0f);
+            Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView((float)(Math.PI / 2.0), glControl1.Width/(float)glControl1.Height, 0.01f, 1000.0f);
             mult = viewModel * projection;
 
-            
+            basic.Use();
+
             //model *= Matrix4.CreateTranslation(FarOffset/10.0f, FarOffset/10.0f, FarOffset/10.0f);
-            
-            if (wire) {
+
+            GL.UniformMatrix4(basic.shaderMVLocation_, false, ref viewModel);
+            GL.UniformMatrix4(basic.shaderPLocation_, false, ref projection);
+            if (wire)
+            {
                 GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
                 GL.CullFace(CullFaceMode.FrontAndBack);
             }
-            else {
-                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
-                GL.CullFace(CullFaceMode.FrontAndBack);
+            else
+            {
+                GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill);
+                GL.CullFace(CullFaceMode.Back);
             }
 
             GL.Enable(EnableCap.DepthTest);
-
-            MainMesh_.Render(mult);
+            MainMesh_.Bind(basic);
+            MainMesh_.Render();
 
             GL.Disable(EnableCap.DepthTest);
             GL.MatrixMode(MatrixMode.Modelview);
@@ -198,7 +164,7 @@ namespace SimpleSTL
             GL.Vertex3(0, FarOffset / 20.0f, 0);
             GL.Color4(Color.Red);
             GL.Vertex3(0, 0, 0);
-            GL.Vertex3(FarOffset/20.0f, 0, 0);
+            GL.Vertex3(FarOffset / 20.0f, 0, 0);
             GL.End();
 
             GL.Flush();
@@ -212,6 +178,10 @@ namespace SimpleSTL
                 toolStripProgressBar1.Value = OcclusionMap.AorResult;
             }
 
+            if (Log.updated && textBox1.Visible) {
+                Log.updated = false;
+                textBox1.Text = Log.Get();
+            }
         }
 
         private bool down;
@@ -232,12 +202,12 @@ namespace SimpleSTL
                 var up_v = rotator.Row1.Xyz;
                 var back_v = rotator.Row2.Xyz;
 
-                rotY += (e.Location.X - preloc.X) / 100.0f;
-                rotZ -= (e.Location.Y - preloc.Y) / 100.0f;
+                rotY += (e.Location.X - preloc.X) / (float)glControl1.Width * 5;
+                rotZ -= (e.Location.Y - preloc.Y) / (float)glControl1.Height * 5;
 
                 var v = new Vector3(0.5f, 0, -0.5f);
                 v.Normalize();
-                rotator = rotator * Matrix4.CreateFromAxisAngle(new Vector3(0, 1, 0), (e.Location.X - preloc.X) / 100.0f) * Matrix4.CreateFromAxisAngle(v, (e.Location.Y - preloc.Y) / 100.0f);
+                rotator = rotator * Matrix4.CreateFromAxisAngle(new Vector3(0, 1, 0), (e.Location.X - preloc.X) / (float)glControl1.Width * 5) * Matrix4.CreateFromAxisAngle(v, (e.Location.Y - preloc.Y) / (float)glControl1.Height * 5);
             }
             preloc = e.Location;
         }
@@ -320,6 +290,7 @@ namespace SimpleSTL
 
         private void смешанныйToolStripMenuItem_Click(object sender, EventArgs e) {
             MainMesh_.AoTest = false;
+            basic = shadeShader;
         }
 
         private IAsyncResult aor;
@@ -342,6 +313,7 @@ namespace SimpleSTL
 
         private void тестAOToolStripMenuItem_Click(object sender, EventArgs e) {
             MainMesh_.AoTest = true;
+            basic = aoTestShader;
         }
 
         Mesh backup = new Mesh();
@@ -357,6 +329,53 @@ namespace SimpleSTL
 
         private void удалениеВнутреннихПолигоновToolStripMenuItem_Click(object sender, EventArgs e) {
             MainMesh_ = MeshTools.RemoveInternal(MainMesh_);
+        }
+
+        private bool logVisible = false;
+        private int glTotalW;
+        private void логРендераToolStripMenuItem_Click(object sender, EventArgs e) {
+            logVisible = !logVisible;
+            Form1_Resize(null,null);
+        }
+
+        private void glControl1_Load(object sender, EventArgs e)
+        {
+            shadeShader = new Shader();
+            shadeShader.loadShaderFromSource(ShaderType.FragmentShader, "basic.glsl");
+            shadeShader.loadShaderFromSource(ShaderType.VertexShader, "basic.glsl");
+            shadeShader.Link();
+            shadeShader.Use();
+            shadeShader.LocateStd();
+
+            aoTestShader = new Shader();
+            aoTestShader.loadShaderFromSource(ShaderType.FragmentShader, "AoTest.glsl");
+            aoTestShader.loadShaderFromSource(ShaderType.VertexShader, "AoTest.glsl");
+            aoTestShader.Link();
+            aoTestShader.Use();
+            aoTestShader.LocateStd();
+
+            basic = shadeShader;
+
+            GL.Enable(EnableCap.DepthTest);
+            GL.DepthFunc(DepthFunction.Less);
+
+            GL.Enable(EnableCap.Blend);
+            GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
+            GL.ActiveTexture(TextureUnit.Texture1);
+            GL.BindTexture(TextureTarget.Texture2D, 1);
+            GL.EnableClientState(ArrayCap.VertexArray);
+            GL.EnableClientState(ArrayCap.NormalArray);
+
+            glControl1.SwapBuffers();
+            glControl1.MouseWheel += glControl1_MouseWheel;
+            glControl1.MouseDown += glControl1_MouseDown;
+            glControl1.MouseMove += glControl1_MouseMove;
+            glControl1.MouseUp += glControl1_MouseUp;
+            timer1.Enabled = true;
+        }
+
+        private void умнаяТесселяцияToolStripMenuItem_Click(object sender, EventArgs e) {
+            MainMesh_ = MeshTools.SmartTesselate(MainMesh_);
         }
     }
 }

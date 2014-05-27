@@ -27,7 +27,7 @@ namespace SimpleSTL {
 
         public static int Size
         {
-            get { return Vector3.SizeInBytes * 2 + Vector2.SizeInBytes; }
+            get { return Vector3.SizeInBytes * 2 + Vector2.SizeInBytes + sizeof(float); }
         }
     }
 }
