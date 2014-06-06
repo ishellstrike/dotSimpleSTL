@@ -15,7 +15,7 @@ using MouseEventArgs = System.Windows.Forms.MouseEventArgs;
 namespace SimpleSTL
 {
     public partial class Form1 : Form {
-        private Shader basic, shadeShader, aoTestShader;
+        private Shader basic, shadeShader, aoTestShader, aoComputeShader, squareComputeShader;
         private Mesh MainMesh_ = new Mesh();
         private IFormatProvider ifp = new CultureInfo("en-US");
 
@@ -117,6 +117,11 @@ namespace SimpleSTL
             toolStripStatusLabel1.Text = string.Format("Model: v = {0} i = {1} CameraOffset: {2} FarestPoint: {3}", MainMesh_.Verteces.Count, MainMesh_.Indeces.Count, FarOffset, farestPoint);
         }
 
+        int BUFFER_TYPE_VERTEX = 0;
+        int BUFFER_TYPE_TEXTCOORD = 3;
+        int BUFFER_TYPE_NORMALE = 1;
+        int BUFFER_TYPE_AO = 2;
+        int BUFFER_TYPE_SQUARE = 4;
         private Matrix4 viewModel, mult;
         private void timer1_Tick(object sender, EventArgs e)
         {
@@ -148,8 +153,17 @@ namespace SimpleSTL
             }
 
             GL.Enable(EnableCap.DepthTest);
+            
+
             MainMesh_.Bind(basic);
+            if (MainMesh_.Indeces.Count == 0)
+            {
+                return;
+            }
+
+            basic.Use();
             MainMesh_.Render();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
 
             GL.Disable(EnableCap.DepthTest);
             GL.MatrixMode(MatrixMode.Modelview);
@@ -354,6 +368,14 @@ namespace SimpleSTL
             aoTestShader.Use();
             aoTestShader.LocateStd();
 
+            aoComputeShader = new Shader();
+            aoComputeShader.loadShaderFromSource(ShaderType.ComputeShader, "AOCompute.glsl");
+            aoComputeShader.Link();
+
+            squareComputeShader = new Shader();
+            squareComputeShader.loadShaderFromSource(ShaderType.ComputeShader, "SquareCompute.glsl");
+            squareComputeShader.Link();
+
             basic = shadeShader;
 
             GL.Enable(EnableCap.DepthTest);
@@ -376,6 +398,41 @@ namespace SimpleSTL
 
         private void умнаяТесселяцияToolStripMenuItem_Click(object sender, EventArgs e) {
             MainMesh_ = MeshTools.SmartTesselate(MainMesh_);
+        }
+
+        private void toolStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+
+        }
+
+        private void пересчетАОНаGPUToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            MainMesh_.UnIndex();
+            MainMesh_.Bind(basic);
+
+            GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, MainMesh_.m_vbo[0]);
+
+            squareComputeShader.Use();
+            GL.DispatchCompute(MainMesh_.Verteces.Count / 3, 1, 1);
+
+            aoComputeShader.Use();
+            var loc = GL.GetUniformLocation(aoComputeShader.ID, "Current");
+            //for (int i = 0; i < MainMesh_.Verteces.Count / 3; i+=3)
+            {
+                GL.DispatchCompute(10, MainMesh_.Verteces.Count / 3, 1);
+            }
+            GL.DispatchCompute(1, MainMesh_.Verteces.Count / 3, 1);
+            GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, 0);
+            var eSize = VertexPositionNormalTexture.Size;
+            var a = new float[MainMesh_.Verteces.Count * (eSize / sizeof(float))];
+            GL.GetBufferSubData(BufferTarget.ShaderStorageBuffer, IntPtr.Zero, (IntPtr)(MainMesh_.Verteces.Count * eSize), a);
+
+            for (int i = 0; i < MainMesh_.Verteces.Count; i++) {
+                var tt = MainMesh_.Verteces[i];
+                tt.Square = a[i*12 + 9];
+                tt.Ao = a[i * 12 + 8];
+                MainMesh_.Verteces[i] = tt;
+            }
         }
     }
 }

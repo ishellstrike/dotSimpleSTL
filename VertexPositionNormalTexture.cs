@@ -6,6 +6,7 @@ namespace SimpleSTL {
         public Vector2 Uv;
         public Vector3 Normal;
         public float Ao;
+        public float Square, t1, t2;
 
         public VertexPositionNormalTexture(Vector3 pos, Vector3 norm, Vector2 uv)
         {
@@ -13,6 +14,8 @@ namespace SimpleSTL {
             Normal = norm;
             Uv = uv;
             Ao = 1;
+            Square = 0;
+            t1 = t2 = 99;
         }
 
         public static VertexPositionNormalTexture operator +(VertexPositionNormalTexture a, VertexPositionNormalTexture b)
@@ -27,7 +30,7 @@ namespace SimpleSTL {
 
         public static int Size
         {
-            get { return Vector3.SizeInBytes * 2 + Vector2.SizeInBytes + sizeof(float); }
+            get { return Vector3.SizeInBytes * 2 + Vector2.SizeInBytes + sizeof(float)*4; }
         }
     }
 }

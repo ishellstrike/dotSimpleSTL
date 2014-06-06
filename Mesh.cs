@@ -17,7 +17,7 @@ namespace SimpleSTL {
         //Texture* Texture;
         Matrix4 World;
         int m_vao;
-        int[] m_vbo;
+        internal int[] m_vbo;
         private IFormatProvider ifp = new CultureInfo("en-US");
 
         public Mesh() {
@@ -43,9 +43,10 @@ namespace SimpleSTL {
         }
 
         int BUFFER_TYPE_VERTEX = 0;
-        int BUFFER_TYPE_TEXTCOORD = 2;
+        int BUFFER_TYPE_TEXTCOORD = 3;
         int BUFFER_TYPE_NORMALE = 1;
         int BUFFER_TYPE_AO = 2;
+        int BUFFER_TYPE_SQUARE = 4;
         public bool AoTest;
         public void Bind(Shader basic)
         {
@@ -82,17 +83,20 @@ namespace SimpleSTL {
             GL.BindBuffer(BufferTarget.ArrayBuffer, m_vbo[0]);
             GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(VertexPositionNormalTexture.Size * Verteces.Count), Verteces.ToArray(), BufferUsageHint.StreamDraw);
             GL.EnableVertexAttribArray(BUFFER_TYPE_VERTEX);
-            //GL.BindAttribLocation(basic.ID(), 1, "vertex_position");
             GL.VertexAttribPointer(BUFFER_TYPE_VERTEX, 3, VertexAttribPointerType.Float, false, stride, (offset)); offset += Vector3.SizeInBytes;
             GL.EnableVertexAttribArray(BUFFER_TYPE_TEXTCOORD);
             GL.VertexAttribPointer(BUFFER_TYPE_TEXTCOORD, 2, VertexAttribPointerType.Float, false, stride, (offset)); offset += Vector2.SizeInBytes;
             GL.EnableVertexAttribArray(BUFFER_TYPE_NORMALE);
-           // GL.BindAttribLocation(basic.ID(), 1, "vertex_normal");
             GL.VertexAttribPointer(BUFFER_TYPE_NORMALE, 3, VertexAttribPointerType.Float, false, stride, (offset)); offset += Vector3.SizeInBytes;
             GL.EnableVertexAttribArray(BUFFER_TYPE_NORMALE);
-           // GL.BindAttribLocation(basic.ID(), 1, "vertex_ao");
             GL.VertexAttribPointer(BUFFER_TYPE_AO, 1, VertexAttribPointerType.Float, false, stride, (offset)); offset += sizeof(float);
-            GL.EnableVertexAttribArray(0);
+            GL.EnableVertexAttribArray(BUFFER_TYPE_AO);
+            GL.VertexAttribPointer(BUFFER_TYPE_SQUARE, 1, VertexAttribPointerType.Float, false, stride, (offset)); offset += sizeof(float);
+            GL.EnableVertexAttribArray(BUFFER_TYPE_SQUARE);
+            GL.VertexAttribPointer(5, 1, VertexAttribPointerType.Float, false, stride, (offset)); offset += sizeof(float);
+            GL.EnableVertexAttribArray(5);
+            GL.VertexAttribPointer(6, 1, VertexAttribPointerType.Float, false, stride, (offset)); offset += sizeof(float);
+            GL.EnableVertexAttribArray(6);
 
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, m_vbo[1]);
             GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(sizeof(uint) * Indeces.Count), Indeces.ToArray(), BufferUsageHint.StreamDraw);
@@ -104,7 +108,7 @@ namespace SimpleSTL {
             {
                 return;
             }
-            GL.BindVertexArray(m_vao);
+            //GL.BindVertexArray(m_vao);
             GL.DrawElements(PrimitiveType.Triangles, Indeces.Count, DrawElementsType.UnsignedInt, IntPtr.Zero);
         }
 

@@ -8,6 +8,7 @@
 	in vec2 vertex_uv;
 	in vec3 vertex_normal;
 	in float vertex_ao;
+	in float square;
 	
 	out vec3 normal;
 	out vec4 position;

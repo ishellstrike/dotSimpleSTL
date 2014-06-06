@@ -50,6 +50,7 @@
             this.кубToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.тесселяцияToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.умнаяТесселяцияToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.нормализацияToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.пересчитатьНормалиToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.перевернутьНормалиToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -68,7 +69,7 @@
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.textBox1 = new System.Windows.Forms.TextBox();
-            this.умнаяТесселяцияToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.пересчетАОНаGPUToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1.SuspendLayout();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -93,6 +94,7 @@
             this.toolStrip1.Size = new System.Drawing.Size(711, 25);
             this.toolStrip1.TabIndex = 1;
             this.toolStrip1.Text = "toolStrip1";
+            this.toolStrip1.ItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.toolStrip1_ItemClicked);
             // 
             // statusStrip1
             // 
@@ -182,34 +184,34 @@
             this.смешанныйToolStripMenuItem,
             this.тестAOToolStripMenuItem});
             this.отображениеToolStripMenuItem.Name = "отображениеToolStripMenuItem";
-            this.отображениеToolStripMenuItem.Size = new System.Drawing.Size(294, 22);
+            this.отображениеToolStripMenuItem.Size = new System.Drawing.Size(297, 22);
             this.отображениеToolStripMenuItem.Text = "Режим отображения";
             // 
             // сеткаToolStripMenuItem
             // 
             this.сеткаToolStripMenuItem.Name = "сеткаToolStripMenuItem";
-            this.сеткаToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.сеткаToolStripMenuItem.Size = new System.Drawing.Size(131, 22);
             this.сеткаToolStripMenuItem.Text = "Каркас";
             this.сеткаToolStripMenuItem.Click += new System.EventHandler(this.сеткаToolStripMenuItem_Click);
             // 
             // заливкаToolStripMenuItem
             // 
             this.заливкаToolStripMenuItem.Name = "заливкаToolStripMenuItem";
-            this.заливкаToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.заливкаToolStripMenuItem.Size = new System.Drawing.Size(131, 22);
             this.заливкаToolStripMenuItem.Text = "Заливка";
             this.заливкаToolStripMenuItem.Click += new System.EventHandler(this.заливкаToolStripMenuItem_Click);
             // 
             // смешанныйToolStripMenuItem
             // 
             this.смешанныйToolStripMenuItem.Name = "смешанныйToolStripMenuItem";
-            this.смешанныйToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.смешанныйToolStripMenuItem.Size = new System.Drawing.Size(131, 22);
             this.смешанныйToolStripMenuItem.Text = "Затенение";
             this.смешанныйToolStripMenuItem.Click += new System.EventHandler(this.смешанныйToolStripMenuItem_Click);
             // 
             // тестAOToolStripMenuItem
             // 
             this.тестAOToolStripMenuItem.Name = "тестAOToolStripMenuItem";
-            this.тестAOToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.тестAOToolStripMenuItem.Size = new System.Drawing.Size(131, 22);
             this.тестAOToolStripMenuItem.Text = "Тест AO";
             this.тестAOToolStripMenuItem.Click += new System.EventHandler(this.тестAOToolStripMenuItem_Click);
             // 
@@ -227,6 +229,7 @@
             this.удратьИндексациюToolStripMenuItem,
             this.toolStripSeparator2,
             this.удалениеНевидимыхГранейToolStripMenuItem,
+            this.пересчетАОНаGPUToolStripMenuItem,
             this.пересчетAOToolStripMenuItem,
             this.сбросAOToolStripMenuItem,
             this.удалениеВнутреннихПолигоновToolStripMenuItem,
@@ -264,6 +267,14 @@
             this.тесселяцияToolStripMenuItem.Size = new System.Drawing.Size(255, 22);
             this.тесселяцияToolStripMenuItem.Text = "Тесселяция";
             this.тесселяцияToolStripMenuItem.Click += new System.EventHandler(this.тесселяцияToolStripMenuItem_Click);
+            // 
+            // умнаяТесселяцияToolStripMenuItem
+            // 
+            this.умнаяТесселяцияToolStripMenuItem.Name = "умнаяТесселяцияToolStripMenuItem";
+            this.умнаяТесселяцияToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T)));
+            this.умнаяТесселяцияToolStripMenuItem.Size = new System.Drawing.Size(255, 22);
+            this.умнаяТесселяцияToolStripMenuItem.Text = "Умная тесселяция";
+            this.умнаяТесселяцияToolStripMenuItem.Click += new System.EventHandler(this.умнаяТесселяцияToolStripMenuItem_Click);
             // 
             // нормализацияToolStripMenuItem
             // 
@@ -385,13 +396,12 @@
             this.textBox1.Size = new System.Drawing.Size(295, 310);
             this.textBox1.TabIndex = 4;
             // 
-            // умнаяТесселяцияToolStripMenuItem
+            // пересчетАОНаGPUToolStripMenuItem
             // 
-            this.умнаяТесселяцияToolStripMenuItem.Name = "умнаяТесселяцияToolStripMenuItem";
-            this.умнаяТесселяцияToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T)));
-            this.умнаяТесселяцияToolStripMenuItem.Size = new System.Drawing.Size(255, 22);
-            this.умнаяТесселяцияToolStripMenuItem.Text = "Умная тесселяция";
-            this.умнаяТесселяцияToolStripMenuItem.Click += new System.EventHandler(this.умнаяТесселяцияToolStripMenuItem_Click);
+            this.пересчетАОНаGPUToolStripMenuItem.Name = "пересчетАОНаGPUToolStripMenuItem";
+            this.пересчетАОНаGPUToolStripMenuItem.Size = new System.Drawing.Size(255, 22);
+            this.пересчетАОНаGPUToolStripMenuItem.Text = "пересчет АО на GPU";
+            this.пересчетАОНаGPUToolStripMenuItem.Click += new System.EventHandler(this.пересчетАОНаGPUToolStripMenuItem_Click);
             // 
             // Form1
             // 
@@ -459,6 +469,7 @@
         private System.Windows.Forms.ToolStripMenuItem логРендераToolStripMenuItem;
         private System.Windows.Forms.TextBox textBox1;
         private System.Windows.Forms.ToolStripMenuItem умнаяТесселяцияToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem пересчетАОНаGPUToolStripMenuItem;
     }
 }
 

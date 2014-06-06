@@ -27,7 +27,7 @@ namespace SimpleSTL
         public void loadShaderFromSource(ShaderType type, string source)
         {
             StringBuilder ss = new StringBuilder();
-            ss.AppendLine("#version 330");
+            ss.AppendLine("#version 430");
             string name = "";
             if (type == ShaderType.FragmentShader)
             {
@@ -54,6 +54,11 @@ namespace SimpleSTL
                 name = "#define _TESSCONTROL_";
                 ss.AppendLine(name);
             }
+            else if (type == ShaderType.ComputeShader)
+            {
+                name = "#define _COMPUTE_";
+                ss.AppendLine(name);
+            }
 
             using (StreamReader file = new StreamReader(source))
             {
@@ -73,6 +78,7 @@ namespace SimpleSTL
             GL.LinkProgram(program);
             Log.Add("Program ", program, " linking");
             PrintLog(program);
+            Log.Add("----------");
             return true;
         }
 
@@ -86,8 +92,9 @@ namespace SimpleSTL
             GL.UseProgram(program);
         }
 
-        public int ID() {
-            return program;
+        public int ID
+        {
+            get { return program; }
         }
     }
 
