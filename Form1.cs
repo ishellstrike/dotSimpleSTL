@@ -1,21 +1,24 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
+using Cloo;
 using OpenTK.Input;
 using MouseEventArgs = System.Windows.Forms.MouseEventArgs;
 
 namespace SimpleSTL
 {
     public partial class Form1 : Form {
-        private Shader basic, shadeShader, aoTestShader, aoComputeShader, squareComputeShader;
+        private Shader basic, shadeShader, aoTestShader, aoComputeShader, squareComputeShader, contrastCompute;
         private Mesh MainMesh_ = new Mesh();
         private IFormatProvider ifp = new CultureInfo("en-US");
 
@@ -376,6 +379,10 @@ namespace SimpleSTL
             squareComputeShader.loadShaderFromSource(ShaderType.ComputeShader, "SquareCompute.glsl");
             squareComputeShader.Link();
 
+            contrastCompute = new Shader();
+            contrastCompute.loadShaderFromSource(ShaderType.ComputeShader, "contrastCompute.glsl");
+            contrastCompute.Link();
+
             basic = shadeShader;
 
             GL.Enable(EnableCap.DepthTest);
@@ -407,20 +414,24 @@ namespace SimpleSTL
 
         private void пересчетАОНаGPUToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            MainMesh_.UnIndex();
             MainMesh_.Bind(basic);
 
             GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, MainMesh_.m_vbo[0]);
 
             squareComputeShader.Use();
             GL.DispatchCompute(MainMesh_.Verteces.Count / 3, 1, 1);
-            //GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit | MemoryBarrierFlags.VertexAttribArrayBarrierBit);
-            //
 
-            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, MainMesh_.m_vbo[0]);
+            aoComputeShader.Use();
+            GL.DispatchCompute(MainMesh_.Verteces.Count / 3, MainMesh_.Verteces.Count / 3, 1);
 
-            squareComputeShader.Use();
+            contrastCompute.Use();
+            GL.DispatchCompute(MainMesh_.Verteces.Count / 3, 1, 1);
+
+            GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, 0);
             var eSize = VertexPositionNormalTexture.Size;
-            var a = new float[eSize / sizeof(float)];
+            var a = new float[MainMesh_.Verteces.Count * (eSize / sizeof(float))];
+            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, MainMesh_.m_vbo[0]);
             GL.GetBufferSubData(BufferTarget.ShaderStorageBuffer, IntPtr.Zero, (IntPtr)(MainMesh_.Verteces.Count * eSize), a);
 
             for (int i = 0; i < MainMesh_.Verteces.Count; i++) {
@@ -430,5 +441,166 @@ namespace SimpleSTL
                 MainMesh_.Verteces[i] = tt;
             }
         }
+
+        private void пересчетAOOpenCLToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            MainMesh_.UnIndex();
+
+            ComputeContextPropertyList Properties = new ComputeContextPropertyList(ComputePlatform.Platforms[1]);
+            ComputeContext Context = new ComputeContext(ComputeDeviceTypes.All, Properties, null, IntPtr.Zero);
+
+            string vecSum = @"
+        __kernel void floatSquareDivPi(__global float * vx, __global float * vy, __global float * vz,
+                                       __global float * nx, __global float * ny, __global float * nz,
+                                       __global float * a, __global float * s)
+                            { 
+                                int i = get_global_id(0)*3;
+	                            float3 vec1 = (float3)(vx[i], vy[i], vz[i]); 
+                                float3 vec2 = (float3)(vx[i+1], vy[i+1], vz[i+1]); 
+                                float3 vec3 = (float3)(vx[i+2], vy[i+2], vz[i+2]); 
+
+                                float A = distance(vec1, vec2);
+                                float B = distance(vec2, vec3);
+                                float C = distance(vec1, vec3); // try fast ones
+
+                                float S = (A + B + C) / 2.0f;
+                                float sq = sqrt(S * (S - A) * (S - B) * (S - C)) / 3.1415926535897932384626433832795f;
+                                s[i] = s[i+1] = s[i+2] = sq;
+                            }
+
+        __kernel void floatAoVertex(__global float * vx, __global float * vy, __global float * vz,
+                                       __global float * nx, __global float * ny, __global float * nz,
+                                       __global float * a, __global float * s)
+                            {
+                                    
+                            }
+                            ";
+            List<ComputeDevice> Devs = new List<ComputeDevice>();
+            Devs.Add(ComputePlatform.Platforms[1].Devices[0]);
+            ComputeProgram prog = null;
+            try {
+
+                prog = new ComputeProgram(Context, vecSum);
+                prog.Build(Devs, "", null, IntPtr.Zero);
+            }
+
+            catch(Exception ex) {
+
+                throw ex;
+            }
+
+            ComputeKernel kernelSquare = prog.CreateKernel("floatSquareDivPi");
+            ComputeKernel kernelAoVert = prog.CreateKernel("floatAoVertex");
+
+            float[] v1 = new float[MainMesh_.Verteces.Count], v2 = new float[MainMesh_.Verteces.Count];
+            float[] v3 = new float[MainMesh_.Verteces.Count], v4 = new float[MainMesh_.Verteces.Count];
+            float[] v5 = new float[MainMesh_.Verteces.Count], v6 = new float[MainMesh_.Verteces.Count];
+            float[] v7 = new float[MainMesh_.Verteces.Count], v8 = new float[MainMesh_.Verteces.Count];
+            for (int i = 0; i < MainMesh_.Verteces.Count; i++)
+            {
+                v1[i] = MainMesh_.Verteces[i].Position.X;
+                v2[i] = MainMesh_.Verteces[i].Position.Y;
+                v3[i] = MainMesh_.Verteces[i].Position.Z;
+                v4[i] = MainMesh_.Verteces[i].Normal.X;
+                v5[i] = MainMesh_.Verteces[i].Normal.Y;
+                v6[i] = MainMesh_.Verteces[i].Normal.Z;
+                v7[i] = 1.0f;
+                v8[i] = 0.0f;
+            }
+
+            var bufV1 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v1);
+            var bufV2 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v2);
+            var bufV3 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v3);
+            var bufV4 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v4);
+            var bufV5 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v5);
+            var bufV6 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v6);
+            var bufV7 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v7);
+            var bufV8 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v8);
+
+            kernelSquare.SetMemoryArgument(0, bufV1);
+            kernelSquare.SetMemoryArgument(1, bufV2);
+            kernelSquare.SetMemoryArgument(2, bufV3);
+            kernelSquare.SetMemoryArgument(3, bufV4);
+            kernelSquare.SetMemoryArgument(4, bufV5);
+            kernelSquare.SetMemoryArgument(5, bufV6);
+            kernelSquare.SetMemoryArgument(6, bufV7);
+            kernelSquare.SetMemoryArgument(7, bufV8);
+            ComputeCommandQueue Queue = new ComputeCommandQueue(Context, Cloo.ComputePlatform.Platforms[1].Devices[0], Cloo.ComputeCommandQueueFlags.None);
+            Queue.Execute(kernelSquare, null, new long[] { v1.Length/3 }, null, null);
+            float[] arrC = new float[MainMesh_.Verteces.Count];
+            float[] arrA = new float[MainMesh_.Verteces.Count];
+            GCHandle arrCHandle = GCHandle.Alloc(arrC, GCHandleType.Pinned);
+            GCHandle arrAHandle = GCHandle.Alloc(arrA, GCHandleType.Pinned);
+            Queue.Read(bufV8, true, 0, MainMesh_.Verteces.Count, arrCHandle.AddrOfPinnedObject(), null);
+            Queue.Read(bufV7, true, 0, MainMesh_.Verteces.Count, arrAHandle.AddrOfPinnedObject(), null);
+
+            for (int i = 0; i < MainMesh_.Verteces.Count; i++)
+            {
+                var tt = MainMesh_.Verteces[i];
+                tt.Square = arrC[i];
+                tt.Ao = arrA[i];
+                MainMesh_.Verteces[i] = tt;
+            }
+        }
+
+        /*
+         * 
+         *             ComputeContextPropertyList Properties = new ComputeContextPropertyList(ComputePlatform.Platforms[1]);
+            ComputeContext Context = new ComputeContext(ComputeDeviceTypes.All, Properties, null, IntPtr.Zero);
+
+            //Текст програмы, исполняющейся на устройстве (GPU или CPU). Именно эта программа будет выполнять паралельные
+            //вычисления и будет складывать вектора. Программа написанна на языке, основанном на C99 специально под OpenCL.
+            string vecSum = @"
+        __kernel voiprogSquare floatVectorSum(__global float * v1,
+        __global float * v2)
+        {
+         int i = get_global_id(0);
+         v1[i] = v1[i] + v2[i];
+        }
+
+        ";
+            //Список устройств, для которых мы будем компилироprogSquareанную в vecSum программу
+            List<ComputeDevice> Devs = new List<ComputeDevice>();
+            Devs.Add(ComputePlatform.Platforms[1].Devices[0]);
+           // Devs.Add(ComputePlatform.Platforms[1].Devices[1]);
+           // Devs.Add(ComputePlatform.Platforms[1].Devices[2]);
+            //Компиляция программы из vecSum
+            ComputeProgram prog = null;
+            try
+            {
+
+                prog = new ComputeProgram(Context, vecSum); prog.Build(Devs, "", null, IntPtr.Zero);
+            }
+
+            catch
+
+            { }
+
+            //Инициализация новой программы
+            ComputeKernel kernelVecSum = prog.CreateKernel("floatVectorSum");
+
+            //Инициализация и присвоение векторов, которые мы будем складывать.
+            float[] v1 = new float[100], v2 = new float[100];
+            for (int i = 0; i < v1.Length; i++)
+            {
+                v1[i] = i;
+                v2[i] = 2 * i;
+            }
+            //Загрузка данных в указатели для дальнейшего использования.
+            ComputeBuffer<float> bufV1 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v1);
+            ComputeBuffer<float> bufV2 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v2);
+            //Объявляем какие данные будут использоваться в программе vecSum
+            kernelVecSum.SetMemoryArgument(0, bufV1);
+            kernelVecSum.SetMemoryArgument(1, bufV2);
+            //Создание програмной очереди. Не забудте указать устройство, на котором будет исполняться программа!
+            ComputeCommandQueue Queue = new ComputeCommandQueue(Context, Cloo.ComputePlatform.Platforms[1].Devices[0], Cloo.ComputeCommandQueueFlags.None);
+            //Старт. Execute запускает программу-ядро vecSum указанное колличество раз (v1.Length)
+            Queue.Execute(kernelVecSum, null, new long[] { v1.Length }, null, null);
+            //Считывание данных из памяти устройства.
+            float[] arrC = new float[100];
+            GCHandle arrCHandle = GCHandle.Alloc(arrC, GCHandleType.Pinned);
+            Queue.Read<float>(bufV1, true, 0, 100, arrCHandle.AddrOfPinnedObject(), null);
+         * 
+         */
     }
 }

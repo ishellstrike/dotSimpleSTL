@@ -26,7 +26,7 @@ void main(){
     float sq = sqrt(s * (s - a) * (s - b) * (s - c)) / M_PI;
 	
 	//set triangle square / M_PI
-	p[i].s = p[i+1].s = p[i+2].s = sq / M_PI;
+	p[i].s = p[i+1].s = p[i+2].s = sq;
 	//also zeroing ao
 	p[i].a = p[i+1].a = p[i+2].a = 1;
 }

@@ -57,6 +57,7 @@
             this.удратьИндексациюToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.удалениеНевидимыхГранейToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.пересчетАОНаGPUToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.пересчетAOToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.сбросAOToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.удалениеВнутреннихПолигоновToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -69,7 +70,7 @@
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.textBox1 = new System.Windows.Forms.TextBox();
-            this.пересчетАОНаGPUToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.пересчетAOOpenCLToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1.SuspendLayout();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -231,6 +232,7 @@
             this.удалениеНевидимыхГранейToolStripMenuItem,
             this.пересчетАОНаGPUToolStripMenuItem,
             this.пересчетAOToolStripMenuItem,
+            this.пересчетAOOpenCLToolStripMenuItem,
             this.сбросAOToolStripMenuItem,
             this.удалениеВнутреннихПолигоновToolStripMenuItem,
             this.toolStripSeparator3,
@@ -317,6 +319,13 @@
             this.удалениеНевидимыхГранейToolStripMenuItem.Text = "Удаление невидимых граней";
             this.удалениеНевидимыхГранейToolStripMenuItem.Click += new System.EventHandler(this.удалениеНевидимыхГранейToolStripMenuItem_Click);
             // 
+            // пересчетАОНаGPUToolStripMenuItem
+            // 
+            this.пересчетАОНаGPUToolStripMenuItem.Name = "пересчетАОНаGPUToolStripMenuItem";
+            this.пересчетАОНаGPUToolStripMenuItem.Size = new System.Drawing.Size(255, 22);
+            this.пересчетАОНаGPUToolStripMenuItem.Text = "пересчет АО на GPU";
+            this.пересчетАОНаGPUToolStripMenuItem.Click += new System.EventHandler(this.пересчетАОНаGPUToolStripMenuItem_Click);
+            // 
             // пересчетAOToolStripMenuItem
             // 
             this.пересчетAOToolStripMenuItem.Name = "пересчетAOToolStripMenuItem";
@@ -396,12 +405,12 @@
             this.textBox1.Size = new System.Drawing.Size(295, 310);
             this.textBox1.TabIndex = 4;
             // 
-            // пересчетАОНаGPUToolStripMenuItem
+            // пересчетAOOpenCLToolStripMenuItem
             // 
-            this.пересчетАОНаGPUToolStripMenuItem.Name = "пересчетАОНаGPUToolStripMenuItem";
-            this.пересчетАОНаGPUToolStripMenuItem.Size = new System.Drawing.Size(255, 22);
-            this.пересчетАОНаGPUToolStripMenuItem.Text = "пересчет АО на GPU";
-            this.пересчетАОНаGPUToolStripMenuItem.Click += new System.EventHandler(this.пересчетАОНаGPUToolStripMenuItem_Click);
+            this.пересчетAOOpenCLToolStripMenuItem.Name = "пересчетAOOpenCLToolStripMenuItem";
+            this.пересчетAOOpenCLToolStripMenuItem.Size = new System.Drawing.Size(255, 22);
+            this.пересчетAOOpenCLToolStripMenuItem.Text = "пересчет AO OpenCL";
+            this.пересчетAOOpenCLToolStripMenuItem.Click += new System.EventHandler(this.пересчетAOOpenCLToolStripMenuItem_Click);
             // 
             // Form1
             // 
@@ -470,6 +479,7 @@
         private System.Windows.Forms.TextBox textBox1;
         private System.Windows.Forms.ToolStripMenuItem умнаяТесселяцияToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem пересчетАОНаGPUToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem пересчетAOOpenCLToolStripMenuItem;
     }
 }
 
