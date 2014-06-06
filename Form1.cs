@@ -450,7 +450,7 @@ namespace SimpleSTL
             ComputeContext Context = new ComputeContext(ComputeDeviceTypes.All, Properties, null, IntPtr.Zero);
 
             string vecSum = @"
-        __kernel void floatSquareDivPi(__global float * vx, __global float * vy, __global float * vz,
+                            __kernel void floatSquareDivPi(__global float * vx, __global float * vy, __global float * vz,
                                        __global float * nx, __global float * ny, __global float * nz,
                                        __global float * a, __global float * s)
                             { 
@@ -534,33 +534,43 @@ namespace SimpleSTL
                 MainMesh_.Verteces[i] = tt;
             }
 
-            ComputeNext();
+            
+            if (ar == null || ar.IsCompleted) {
+                Action act = ComputeNext;
+               ar = act.BeginInvoke(null, null);
+            }
         }
+        IAsyncResult ar;
 
         private void ComputeNext() {
             ComputeContextPropertyList Properties = new ComputeContextPropertyList(ComputePlatform.Platforms[1]);
             ComputeContext Context = new ComputeContext(ComputeDeviceTypes.All, Properties, null, IntPtr.Zero);
 
             string vecSum = @"
-                           float ElementShadow(float3 v, float rSquared, float3 receiverNormal, float3 emitterNormal, float emitterArea) {
+                            float ElementShadow(float3 v, float rSquared, float3 receiverNormal, float3 emitterNormal, float emitterArea) {
                                 return (1.0f - 1.0f / sqrt(emitterArea/rSquared + 1.0f)) *
                                 clamp(dot(emitterNormal, v), 0.0f, 1.0f) *
                                 clamp(4.0f * dot(receiverNormal, v), 0.0f, 1.0f);
-                           }
-        __kernel void floatAO(__global float * vx, __global float * vy, __global float * vz,
+                            }
+                            __kernel void floatAO(__global float * vx, __global float * vy, __global float * vz,
                                        __global float * nx, __global float * ny, __global float * nz,
-                                       __global float * a, __global float * s)
+                                       __global float * a, __global float * s, int from)
                             { 
-                                int i = get_global_id(0)*3;
+                                int i = from + get_global_id(0)*3;
                                 float res = 0.0f;
-                                for(int j = 0; j<50000;j+=3){
+                                for(int j = 0; j<140000;j+=3){
                                     float3 v = (float3)(vx[j], vy[j], vz[j]) - (float3)(vx[i], vy[i], vz[i]);
                                     float d2 = dot(v, v) + 1e-16;
                                     
                                     v *= 1.0f / sqrt(d2);
 	                                float value = ElementShadow(v, d2, (float3)(nx[i], ny[i], nz[i]), (float3)(nx[j], ny[j], nz[j]), s[j]);
+                                    if(value == NAN) {
+                                        value = 1;
+                                    }
                                     res += value;
                                 }
+                            
+                            a[i] = a[i+1] = a[i+2] = 1.0f - res;
 }
                                
           ";
@@ -595,7 +605,7 @@ namespace SimpleSTL
                 v5[i] = MainMesh_.Verteces[i].Normal.Y;
                 v6[i] = MainMesh_.Verteces[i].Normal.Z;
                 v7[i] = 1.0f;
-                v8[i] = 0.0f;
+                v8[i] = MainMesh_.Verteces[i].Square;
             }
 
             var bufV1 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v1);
@@ -615,22 +625,42 @@ namespace SimpleSTL
             kernelSquare.SetMemoryArgument(5, bufV6);
             kernelSquare.SetMemoryArgument(6, bufV7);
             kernelSquare.SetMemoryArgument(7, bufV8);
-            ComputeCommandQueue Queue = new ComputeCommandQueue(Context, Cloo.ComputePlatform.Platforms[1].Devices[0], Cloo.ComputeCommandQueueFlags.None);
-            Queue.Execute(kernelSquare, null, new long[] { v1.Length / 3 }, null, null);
-            float[] arr8Back = new float[MainMesh_.Verteces.Count];
-            float[] arr7Back = new float[MainMesh_.Verteces.Count];
-            GCHandle arr8Handle = GCHandle.Alloc(arr8Back, GCHandleType.Pinned);
-            GCHandle arr7Handle = GCHandle.Alloc(arr7Back, GCHandleType.Pinned);
-            Queue.Read(bufV8, true, 0, MainMesh_.Verteces.Count, arr8Handle.AddrOfPinnedObject(), null);
-            Queue.Read(bufV7, true, 0, MainMesh_.Verteces.Count, arr7Handle.AddrOfPinnedObject(), null);
 
-            for (int i = 0; i < MainMesh_.Verteces.Count; i++)
-            {
-                var tt = MainMesh_.Verteces[i];
-                tt.Square = arr8Back[i];
-                tt.Ao = arr7Back[i];
-                MainMesh_.Verteces[i] = tt;
+           // var parts = ((long)v1.Length)*(v1.Length);
+           // var diver = parts/10000000000.0f;
+            var diverI =1;
+
+            for (int j = 0; j < diverI; j++) {
+//                 var min = j*10000000000;
+//                 if (min >= MainMesh_.Verteces.Count) {
+//                     min = MainMesh_.Verteces.Count;
+//                 }
+//                 var max = (j+1) * 10000000000;
+//                 if (max >= MainMesh_.Verteces.Count)
+//                 {
+//                     max = MainMesh_.Verteces.Count;
+//                 }
+
+                kernelSquare.SetValueArgument(8, 0);
+                ComputeCommandQueue Queue = new ComputeCommandQueue(Context, Cloo.ComputePlatform.Platforms[1].Devices[0], Cloo.ComputeCommandQueueFlags.None);
+                Queue.Execute(kernelSquare, null, new long[] { MainMesh_.Verteces.Count / 3 }, null, null);
+                float[] arr8Back = new float[MainMesh_.Verteces.Count];
+                float[] arr7Back = new float[MainMesh_.Verteces.Count];
+                GCHandle arr8Handle = GCHandle.Alloc(arr8Back, GCHandleType.Pinned);
+                GCHandle arr7Handle = GCHandle.Alloc(arr7Back, GCHandleType.Pinned);
+                Queue.Read(bufV8, true, 0, MainMesh_.Verteces.Count, arr8Handle.AddrOfPinnedObject(), null);
+                Queue.Read(bufV7, true, 0, MainMesh_.Verteces.Count, arr7Handle.AddrOfPinnedObject(), null);
+
+                for (int i = 0; i < MainMesh_.Verteces.Count; i++)
+                {
+                    var tt = MainMesh_.Verteces[i];
+                    tt.Square = arr8Back[i];
+                    tt.Ao = arr7Back[i];
+                    MainMesh_.Verteces[i] = tt;
+                }
             }
+
+
         }
 
         /*
