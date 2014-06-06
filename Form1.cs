@@ -407,24 +407,20 @@ namespace SimpleSTL
 
         private void пересчетАОНаGPUToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            MainMesh_.UnIndex();
             MainMesh_.Bind(basic);
 
             GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, MainMesh_.m_vbo[0]);
 
             squareComputeShader.Use();
             GL.DispatchCompute(MainMesh_.Verteces.Count / 3, 1, 1);
+            //GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit | MemoryBarrierFlags.VertexAttribArrayBarrierBit);
+            //
 
-            aoComputeShader.Use();
-            var loc = GL.GetUniformLocation(aoComputeShader.ID, "Current");
-            //for (int i = 0; i < MainMesh_.Verteces.Count / 3; i+=3)
-            {
-                GL.DispatchCompute(10, MainMesh_.Verteces.Count / 3, 1);
-            }
-            GL.DispatchCompute(1, MainMesh_.Verteces.Count / 3, 1);
-            GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, 0);
+            GL.BindBuffer(BufferTarget.ShaderStorageBuffer, MainMesh_.m_vbo[0]);
+
+            squareComputeShader.Use();
             var eSize = VertexPositionNormalTexture.Size;
-            var a = new float[MainMesh_.Verteces.Count * (eSize / sizeof(float))];
+            var a = new float[eSize / sizeof(float)];
             GL.GetBufferSubData(BufferTarget.ShaderStorageBuffer, IntPtr.Zero, (IntPtr)(MainMesh_.Verteces.Count * eSize), a);
 
             for (int i = 0; i < MainMesh_.Verteces.Count; i++) {
