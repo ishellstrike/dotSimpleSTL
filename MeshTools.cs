@@ -40,12 +40,10 @@ namespace SimpleSTL
             }
             totalAo /= m.Verteces.Count;
 
-            for (int i = 0; i < m.Verteces.Count-3; i+=3) {
+            for (int i = 0; i < m.Verteces.Count; i++) {
                 if (m.Verteces[i].Ao < totalAo) {
                     m.Verteces.RemoveAt(i);
-                    m.Verteces.RemoveAt(i+1);
-                    m.Verteces.RemoveAt(i+2);
-                    i -= 3;
+                    i --;
                 }
             }
 
