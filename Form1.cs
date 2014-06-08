@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
@@ -441,12 +442,16 @@ namespace SimpleSTL
                 MainMesh_.Verteces[i] = tt;
             }
         }
-
+        
+        Stopwatch sw = new Stopwatch();
+        private TimeSpan sw1 = new TimeSpan();
         private void пересчетAOOpenCLToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            sw.Reset();
+            sw.Start();
             MainMesh_.UnIndex();
 
-            ComputeContextPropertyList Properties = new ComputeContextPropertyList(ComputePlatform.Platforms[1]);
+            ComputeContextPropertyList Properties = new ComputeContextPropertyList(compP);
             ComputeContext Context = new ComputeContext(ComputeDeviceTypes.All, Properties, null, IntPtr.Zero);
 
             string vecSum = @"
@@ -464,12 +469,12 @@ namespace SimpleSTL
                                 float C = distance(vec1, vec3); // try fast ones
 
                                 float S = (A + B + C) / 2.0f;
-                                float sq = sqrt(S * (S - A) * (S - B) * (S - C)) / 3.1415926535897932384626433832795f;
+                                float sq = sqrt(S * (S - A) * (S - B) * (S - C)) / M_PI;
                                 s[i] = s[i+1] = s[i+2] = sq;
                             }
                             ";
             List<ComputeDevice> Devs = new List<ComputeDevice>();
-            Devs.Add(ComputePlatform.Platforms[1].Devices[0]);
+            Devs.Add(compP.Devices[0]);
             ComputeProgram prog = null;
             try {
 
@@ -517,23 +522,28 @@ namespace SimpleSTL
             kernelSquare.SetMemoryArgument(5, bufV6);
             kernelSquare.SetMemoryArgument(6, bufV7);
             kernelSquare.SetMemoryArgument(7, bufV8);
-            ComputeCommandQueue Queue = new ComputeCommandQueue(Context, Cloo.ComputePlatform.Platforms[1].Devices[0], Cloo.ComputeCommandQueueFlags.None);
+            ComputeCommandQueue Queue = new ComputeCommandQueue(Context, compP.Devices[0], Cloo.ComputeCommandQueueFlags.None);
             Queue.Execute(kernelSquare, null, new long[] { v1.Length/3 }, null, null);
             float[] arr8Back = new float[MainMesh_.Verteces.Count];
-            float[] arr7Back = new float[MainMesh_.Verteces.Count];
+         //   float[] arr7Back = new float[MainMesh_.Verteces.Count];
             GCHandle arr8Handle = GCHandle.Alloc(arr8Back, GCHandleType.Pinned);
-            GCHandle arr7Handle = GCHandle.Alloc(arr7Back, GCHandleType.Pinned);
+          //  GCHandle arr7Handle = GCHandle.Alloc(arr7Back, GCHandleType.Pinned);
             Queue.Read(bufV8, true, 0, MainMesh_.Verteces.Count, arr8Handle.AddrOfPinnedObject(), null);
-            Queue.Read(bufV7, true, 0, MainMesh_.Verteces.Count, arr7Handle.AddrOfPinnedObject(), null);
+           // Queue.Read(bufV7, true, 0, MainMesh_.Verteces.Count, arr7Handle.AddrOfPinnedObject(), null);
 
             for (int i = 0; i < MainMesh_.Verteces.Count; i++)
             {
                 var tt = MainMesh_.Verteces[i];
                 tt.Square = arr8Back[i];
-                tt.Ao = arr7Back[i];
+                tt.Ao = 1;
                 MainMesh_.Verteces[i] = tt;
             }
 
+
+            sw.Stop();
+            sw1 = sw.Elapsed;
+            sw.Reset();
+            sw.Start();
             
             if (ar == null || ar.IsCompleted) {
                 Action act = ComputeNext;
@@ -543,30 +553,30 @@ namespace SimpleSTL
         IAsyncResult ar;
 
         private void ComputeNext() {
-            ComputeContextPropertyList Properties = new ComputeContextPropertyList(ComputePlatform.Platforms[1]);
+            ComputeContextPropertyList Properties = new ComputeContextPropertyList(compP);
             ComputeContext Context = new ComputeContext(ComputeDeviceTypes.All, Properties, null, IntPtr.Zero);
 
             string vecSum = @"
                             float ElementShadow(float3 v, float rSquared, float3 receiverNormal, float3 emitterNormal, float emitterArea) {
-                                return (1.0f - 1.0f / sqrt(emitterArea/rSquared + 1.0f)) *
+                                return (1.0f - rsqrt(emitterArea/rSquared + 1.0f)) *
                                 clamp(dot(emitterNormal, v), 0.0f, 1.0f) *
                                 clamp(4.0f * dot(receiverNormal, v), 0.0f, 1.0f);
                             }
                             __kernel void floatAO(__global float * vx, __global float * vy, __global float * vz,
                                        __global float * nx, __global float * ny, __global float * nz,
-                                       __global float * a, __global float * s, int from)
+                                       __global float * a, __global float * s, long from)
                             { 
                                 int i = from + get_global_id(0)*3;
                                 float res = 0.0f;
+                                float3 v = (float3)(0, 0, 0);
+                                float d2 = 0;
+                                float value = 0;
                                 for(int j = 0; j<140000;j+=3){
-                                    float3 v = (float3)(vx[j], vy[j], vz[j]) - (float3)(vx[i], vy[i], vz[i]);
-                                    float d2 = dot(v, v) + 1e-16;
+                                    v = (float3)(vx[j], vy[j], vz[j]) - (float3)(vx[i], vy[i], vz[i]);
+                                    d2 = dot(v, v) + 1e-16;
                                     
-                                    v *= 1.0f / sqrt(d2);
-	                                float value = ElementShadow(v, d2, (float3)(nx[i], ny[i], nz[i]), (float3)(nx[j], ny[j], nz[j]), s[j]);
-                                    if(value == NAN) {
-                                        value = 1;
-                                    }
+                                    v *= rsqrt(d2);
+	                                value = ElementShadow(v, d2, (float3)(nx[i], ny[i], nz[i]), (float3)(nx[j], ny[j], nz[j]), s[j]);
                                     res += value;
                                 }
                             
@@ -575,7 +585,7 @@ namespace SimpleSTL
                                
           ";
             List<ComputeDevice> Devs = new List<ComputeDevice>();
-            Devs.Add(ComputePlatform.Platforms[1].Devices[0]);
+            Devs.Add(compP.Devices[0]);
             ComputeProgram prog = null;
             try
             {
@@ -608,14 +618,14 @@ namespace SimpleSTL
                 v8[i] = MainMesh_.Verteces[i].Square;
             }
 
-            var bufV1 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v1);
-            var bufV2 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v2);
-            var bufV3 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v3);
-            var bufV4 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v4);
-            var bufV5 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v5);
-            var bufV6 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v6);
+            var bufV1 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadOnly | ComputeMemoryFlags.UseHostPointer, v1);
+            var bufV2 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadOnly | ComputeMemoryFlags.UseHostPointer, v2);
+            var bufV3 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadOnly | ComputeMemoryFlags.UseHostPointer, v3);
+            var bufV4 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadOnly | ComputeMemoryFlags.UseHostPointer, v4);
+            var bufV5 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadOnly | ComputeMemoryFlags.UseHostPointer, v5);
+            var bufV6 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadOnly | ComputeMemoryFlags.UseHostPointer, v6);
             var bufV7 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v7);
-            var bufV8 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, v8);
+            var bufV8 = new ComputeBuffer<float>(Context, ComputeMemoryFlags.ReadOnly | ComputeMemoryFlags.UseHostPointer, v8);
 
             kernelSquare.SetMemoryArgument(0, bufV1);
             kernelSquare.SetMemoryArgument(1, bufV2);
@@ -626,41 +636,54 @@ namespace SimpleSTL
             kernelSquare.SetMemoryArgument(6, bufV7);
             kernelSquare.SetMemoryArgument(7, bufV8);
 
-           // var parts = ((long)v1.Length)*(v1.Length);
-           // var diver = parts/10000000000.0f;
-            var diverI =1;
-
+            var parts = ((long)v1.Length)*(v1.Length);
+            var diver = parts/35000000000.0f;
+            var diverI = (int)diver + 1;
+            ComputeCommandQueue Queue = new ComputeCommandQueue(Context, compP.Devices[0], Cloo.ComputeCommandQueueFlags.None);
+            long max = 0, min = 0;
+            float[] arr7Back = new float[MainMesh_.Verteces.Count];
+            OcclusionMap.AorResultTotal = diverI;
+            OcclusionMap.AorResult = 0;
             for (int j = 0; j < diverI; j++) {
-//                 var min = j*10000000000;
-//                 if (min >= MainMesh_.Verteces.Count) {
-//                     min = MainMesh_.Verteces.Count;
-//                 }
-//                 var max = (j+1) * 10000000000;
-//                 if (max >= MainMesh_.Verteces.Count)
-//                 {
-//                     max = MainMesh_.Verteces.Count;
-//                 }
-
-                kernelSquare.SetValueArgument(8, 0);
-                ComputeCommandQueue Queue = new ComputeCommandQueue(Context, Cloo.ComputePlatform.Platforms[1].Devices[0], Cloo.ComputeCommandQueueFlags.None);
-                Queue.Execute(kernelSquare, null, new long[] { MainMesh_.Verteces.Count / 3 }, null, null);
-                float[] arr8Back = new float[MainMesh_.Verteces.Count];
-                float[] arr7Back = new float[MainMesh_.Verteces.Count];
-                GCHandle arr8Handle = GCHandle.Alloc(arr8Back, GCHandleType.Pinned);
-                GCHandle arr7Handle = GCHandle.Alloc(arr7Back, GCHandleType.Pinned);
-                Queue.Read(bufV8, true, 0, MainMesh_.Verteces.Count, arr8Handle.AddrOfPinnedObject(), null);
-                Queue.Read(bufV7, true, 0, MainMesh_.Verteces.Count, arr7Handle.AddrOfPinnedObject(), null);
-
-                for (int i = 0; i < MainMesh_.Verteces.Count; i++)
-                {
-                    var tt = MainMesh_.Verteces[i];
-                    tt.Square = arr8Back[i];
-                    tt.Ao = arr7Back[i];
-                    MainMesh_.Verteces[i] = tt;
+                min = MainMesh_.Verteces.Count / diverI * (j);
+                if (min >= MainMesh_.Verteces.Count) {
+                    min = MainMesh_.Verteces.Count;
                 }
+                max = MainMesh_.Verteces.Count / diverI * (j+1);
+                if (max >= MainMesh_.Verteces.Count) {
+                    max = MainMesh_.Verteces.Count;
+                }
+
+                kernelSquare.SetValueArgument(8, min);
+                
+                Queue.Execute(kernelSquare, null, new [] {max - min}, null, null);
+                Queue.Finish();
+                OcclusionMap.AorResult++;
+                
+                GCHandle arr7Handle = GCHandle.Alloc(arr7Back, GCHandleType.Pinned);
+                Queue.Read(bufV7, true, min, max - min, arr7Handle.AddrOfPinnedObject(), null);
+
+                for (long i = min; i < max; i++)
+                {
+                    var tt = MainMesh_.Verteces[(int)i];
+                    //tt.Square = arr8Back[i];
+                    tt.Ao = arr7Back[i-min];
+                    MainMesh_.Verteces[(int)i] = tt;
+                }
+            }   
+
+            sw.Stop();
+            MessageBox.Show(string.Format("sq: {0}\nao: {1}",sw1.ToString(),sw.Elapsed.ToString()));
+        }
+
+        ComputeDeviceForm cdf = new ComputeDeviceForm();
+        public static ComputePlatform compP = ComputePlatform.Platforms[0];
+        private void настройкиOpenCLToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (cdf.IsDisposed) {
+                cdf = new ComputeDeviceForm();
             }
-
-
+            cdf.Show();
         }
 
         /*

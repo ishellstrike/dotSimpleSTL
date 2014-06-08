@@ -59,6 +59,7 @@
             this.удалениеНевидимыхГранейToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.пересчетАОНаGPUToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.пересчетAOToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.пересчетAOOpenCLToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.сбросAOToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.удалениеВнутреннихПолигоновToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
@@ -70,7 +71,7 @@
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.textBox1 = new System.Windows.Forms.TextBox();
-            this.пересчетAOOpenCLToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.настройкиOpenCLToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1.SuspendLayout();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -126,7 +127,8 @@
             this.видToolStripMenuItem,
             this.генерацияToolStripMenuItem,
             this.справкаToolStripMenuItem,
-            this.логРендераToolStripMenuItem});
+            this.логРендераToolStripMenuItem,
+            this.настройкиOpenCLToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.Size = new System.Drawing.Size(711, 24);
@@ -333,6 +335,13 @@
             this.пересчетAOToolStripMenuItem.Text = "пересчет AO";
             this.пересчетAOToolStripMenuItem.Click += new System.EventHandler(this.пересчетAOToolStripMenuItem_Click);
             // 
+            // пересчетAOOpenCLToolStripMenuItem
+            // 
+            this.пересчетAOOpenCLToolStripMenuItem.Name = "пересчетAOOpenCLToolStripMenuItem";
+            this.пересчетAOOpenCLToolStripMenuItem.Size = new System.Drawing.Size(255, 22);
+            this.пересчетAOOpenCLToolStripMenuItem.Text = "пересчет AO OpenCL";
+            this.пересчетAOOpenCLToolStripMenuItem.Click += new System.EventHandler(this.пересчетAOOpenCLToolStripMenuItem_Click);
+            // 
             // сбросAOToolStripMenuItem
             // 
             this.сбросAOToolStripMenuItem.Name = "сбросAOToolStripMenuItem";
@@ -405,12 +414,12 @@
             this.textBox1.Size = new System.Drawing.Size(295, 310);
             this.textBox1.TabIndex = 4;
             // 
-            // пересчетAOOpenCLToolStripMenuItem
+            // настройкиOpenCLToolStripMenuItem
             // 
-            this.пересчетAOOpenCLToolStripMenuItem.Name = "пересчетAOOpenCLToolStripMenuItem";
-            this.пересчетAOOpenCLToolStripMenuItem.Size = new System.Drawing.Size(255, 22);
-            this.пересчетAOOpenCLToolStripMenuItem.Text = "пересчет AO OpenCL";
-            this.пересчетAOOpenCLToolStripMenuItem.Click += new System.EventHandler(this.пересчетAOOpenCLToolStripMenuItem_Click);
+            this.настройкиOpenCLToolStripMenuItem.Name = "настройкиOpenCLToolStripMenuItem";
+            this.настройкиOpenCLToolStripMenuItem.Size = new System.Drawing.Size(125, 20);
+            this.настройкиOpenCLToolStripMenuItem.Text = "Настройки OpenCL";
+            this.настройкиOpenCLToolStripMenuItem.Click += new System.EventHandler(this.настройкиOpenCLToolStripMenuItem_Click);
             // 
             // Form1
             // 
@@ -480,6 +489,7 @@
         private System.Windows.Forms.ToolStripMenuItem умнаяТесселяцияToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem пересчетАОНаGPUToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem пересчетAOOpenCLToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem настройкиOpenCLToolStripMenuItem;
     }
 }
 

@@ -29,7 +29,7 @@ namespace SimpleSTL
 
         public static Mesh RemoveInternal(Mesh mesh) {
             Mesh m = new Mesh(mesh);
-            m.UnIndex();
+           // m.UnIndex();
 
             double totalAo = 0, minAo = m.Verteces[0].Ao;
             for (int i = 0; i < m.Verteces.Count; i+=3) {
@@ -40,12 +40,16 @@ namespace SimpleSTL
             }
             totalAo /= m.Verteces.Count;
 
-            for (int i = 0; i < m.Verteces.Count; i++) {
-                if (m.Verteces[i].Ao < totalAo) {
-                    m.Verteces.RemoveAt(i);
-                    i --;
+            mesh.Verteces.Clear();
+            for (int i = 0; i < m.Verteces.Count; i+=3) {
+                if (m.Verteces[i].Ao >= totalAo) {
+                    mesh.Verteces.Add(m.Verteces[i]);
+                    mesh.Verteces.Add(m.Verteces[i+1]);
+                    mesh.Verteces.Add(m.Verteces[i+2]);
                 }
             }
+
+            m.Verteces = mesh.Verteces;
 
             m.Indeces.Clear();
             for (int i = 0; i < m.Verteces.Count; i++)

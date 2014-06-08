@@ -30,15 +30,8 @@ namespace SimpleSTL {
         }
 
         public Mesh(Mesh mesh) {
-            Verteces = new List<VertexPositionNormalTexture>();
-            Indeces = new List<uint>();
-            for (int i = 0; i < mesh.Verteces.Count; i++) {
-                Verteces.Add(mesh.Verteces[i]);
-            }
-            for (int i = 0; i < mesh.Indeces.Count; i++)
-            {
-                Indeces.Add(mesh.Indeces[i]);
-            }
+            Verteces = new List<VertexPositionNormalTexture>(mesh.Verteces);
+            Indeces = new List<uint>(mesh.Indeces);
             World = mesh.World;
         }
 
@@ -349,14 +342,15 @@ namespace SimpleSTL {
         {
             if (Indeces.Count > 0)
             {
+                GC.Collect();
                 var temp = new List<VertexPositionNormalTexture>(Verteces);
 
                 Verteces.Clear();
-                Verteces.Capacity = Indeces.Count;
+                //Verteces.Capacity = Indeces.Count;
                 for (int i = 0; i < Indeces.Count; i++)
                 {
-                    Verteces.Add(temp[(int) Indeces[i]]);
-                    Indeces[i] = (uint) i;
+                    Verteces.Add(temp[(int)Indeces[i]]);
+                    Indeces[i] = (uint)i;
                 }
             }
         }
