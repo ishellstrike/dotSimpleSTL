@@ -82,6 +82,8 @@
     <Compile Include="Singleton.cs" />
     <Compile Include="SstlHelper.cs" />
     <Compile Include="VertexPositionNormalTexture.cs" />
+    <Compile Include="Sphere.cs" />
+    <Compile Include="Tetrahedral.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>

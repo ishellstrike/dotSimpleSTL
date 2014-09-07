@@ -377,5 +377,24 @@ namespace SimpleSTL
         private void умнаяТесселяцияToolStripMenuItem_Click(object sender, EventArgs e) {
             MainMesh_ = MeshTools.SmartTesselate(MainMesh_);
         }
+
+        private void сфераToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            MainMesh_ = Sphere.GetMesh();
+            MainMesh_.RecalcNormals();
+            MainMesh_.UnIndex();
+            AutoZoom();
+            MainMesh_.ResetAO();
+        }
+
+        private void тетраэдрToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            MainMesh_ = Tetrahedral.GetMesh();
+            MainMesh_.UnIndex();
+            MainMesh_.RecalcNormals();
+            
+            AutoZoom();
+            MainMesh_.ResetAO();
+        }
     }
 }
