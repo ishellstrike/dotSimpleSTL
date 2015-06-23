@@ -41,8 +41,11 @@ namespace SimpleSTL {
         int BUFFER_TYPE_AO = 2;
         int BUFFER_TYPE_SQUARE = 4;
         public bool AoTest;
+        public bool raw = false;
         public void Bind(Shader basic)
         {
+            if (!raw) return;
+            raw = false;
             if (Indeces.Count == 0)
             {
                 return;

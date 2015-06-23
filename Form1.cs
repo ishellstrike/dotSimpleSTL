@@ -20,7 +20,7 @@ namespace SimpleSTL
 {
     public partial class Form1 : Form {
         private Shader basic, shadeShader, aoTestShader, aoComputeShader, squareComputeShader, contrastCompute;
-        private Mesh MainMesh_ = new Mesh();
+        public static Mesh MainMesh_ = new Mesh();
         private IFormatProvider ifp = new CultureInfo("en-US");
 
         public Form1()
@@ -99,6 +99,7 @@ namespace SimpleSTL
             MainMesh_.RecalcNormals();
             AutoZoom();
             MainMesh_.ResetAO();
+            MainMesh_.raw = true;
         }
 
         private void AutoZoom() {
@@ -240,6 +241,7 @@ namespace SimpleSTL
             MainMesh_.RecalcNormals();
             AutoZoom();
             MainMesh_.ResetAO();
+            MainMesh_.raw = true;
         }
 
         private void кубToolStripMenuItem_Click(object sender, EventArgs e)
@@ -248,6 +250,7 @@ namespace SimpleSTL
             MainMesh_.RecalcNormals();
             AutoZoom();
             MainMesh_.ResetAO();
+            MainMesh_.raw = true;
         }
 
         private void видToolStripMenuItem_Click(object sender, EventArgs e)
@@ -258,12 +261,14 @@ namespace SimpleSTL
         private bool wire;
         private void режимОтображенияПолигоновToolStripMenuItem_Click(object sender, EventArgs e) {
             wire = !wire;
+            MainMesh_.raw = true;
         }
 
         private void тесселяцияToolStripMenuItem_Click(object sender, EventArgs e) {
             MainMesh_ = MeshTools.Tesselate(1, MainMesh_);
             MainMesh_.RecalcNormals();
             MainMesh_.ResetAO();
+            MainMesh_.raw = true;
         }
 
         private void нормализацияToolStripMenuItem_Click(object sender, EventArgs e) {
@@ -271,21 +276,25 @@ namespace SimpleSTL
             MainMesh_.RecalcNormals();
             AutoZoom();
             MainMesh_.ResetAO();
+            MainMesh_.raw = true;
         }
 
         private void пересчитатьНормалиToolStripMenuItem_Click(object sender, EventArgs e)
         {
             MainMesh_.RecalcNormals();
+            MainMesh_.raw = true;
         }
 
         private void перевернутьНормалиToolStripMenuItem_Click(object sender, EventArgs e) {
             MainMesh_.FlipNormals();
+            MainMesh_.raw = true;
         }
 
         private void удратьИндексациюToolStripMenuItem_Click(object sender, EventArgs e)
         {
             MainMesh_.UnIndex();
             MainMesh_.RecalcNormals();
+            MainMesh_.raw = true;
         }
 
         private IAsyncResult arRoberts;
@@ -295,20 +304,23 @@ namespace SimpleSTL
                 Rdelegate = MeshTools.RobertsSimplify;
                 arRoberts = Rdelegate.BeginInvoke(MainMesh_, null, null);
             }
-            
+            MainMesh_.raw = true;
         }
 
         private void сеткаToolStripMenuItem_Click(object sender, EventArgs e) {
             wire = true;
+            MainMesh_.raw = true;
         }
 
         private void заливкаToolStripMenuItem_Click(object sender, EventArgs e) {
             wire = false;
+            MainMesh_.raw = true;
         }
 
         private void смешанныйToolStripMenuItem_Click(object sender, EventArgs e) {
             MainMesh_.AoTest = false;
             basic = shadeShader;
+            MainMesh_.raw = true;
         }
 
         private IAsyncResult aor;
@@ -318,10 +330,12 @@ namespace SimpleSTL
                 Action<Mesh> aorD = OcclusionMap.AmbientOcclusionRecalc;
                 aor = aorD.BeginInvoke(MainMesh_, null, null);
             }
+            MainMesh_.raw = true;
         }
 
         private void сбросAOToolStripMenuItem_Click(object sender, EventArgs e) {
             MainMesh_.ResetAO();
+            MainMesh_.raw = true;
         }
 
         private void menuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
@@ -345,8 +359,13 @@ namespace SimpleSTL
             MainMesh_ = new Mesh(backup);
         }
 
+        Form2 f2 = new Form2();
         private void удалениеВнутреннихПолигоновToolStripMenuItem_Click(object sender, EventArgs e) {
-            MainMesh_ = MeshTools.RemoveInternal(MainMesh_);
+            if (f2 != null && f2.IsDisposed)
+            {
+                f2 = new Form2();
+            }
+            f2.Show();
         }
 
         private bool logVisible = false;
@@ -441,6 +460,7 @@ namespace SimpleSTL
                 tt.Ao = a[i * 12 + 8];
                 MainMesh_.Verteces[i] = tt;
             }
+            MainMesh_.raw = true;
         }
         
         Stopwatch sw = new Stopwatch();
@@ -673,14 +693,15 @@ namespace SimpleSTL
             }   
 
             sw.Stop();
-            MessageBox.Show(string.Format("sq: {0}\nao: {1}",sw1.ToString(),sw.Elapsed.ToString()));
+            MessageBox.Show(string.Format("sq: {0}\nao: {1}\nmem: {2}",sw1.ToString(),sw.Elapsed.ToString(), MainMesh_.Verteces.Count * 8 * sizeof(float)));
+            MainMesh_.raw = true;
         }
 
         ComputeDeviceForm cdf = new ComputeDeviceForm();
         public static ComputePlatform compP = ComputePlatform.Platforms[0];
         private void настройкиOpenCLToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (cdf.IsDisposed) {
+            if (cdf != null && cdf.IsDisposed) {
                 cdf = new ComputeDeviceForm();
             }
             cdf.Show();

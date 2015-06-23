@@ -27,31 +27,22 @@ namespace SimpleSTL
             return m;
         }
 
-        public static Mesh RemoveInternal(Mesh mesh) {
-            Mesh m = new Mesh(mesh);
+        public static Mesh RemoveInternal(Mesh mesh, float power) {
+            Mesh m = new Mesh(mesh);// = new Mesh(mesh);
+            m.Verteces.Clear();
+            m.Indeces.Clear();
            // m.UnIndex();
 
-            double totalAo = 0, minAo = m.Verteces[0].Ao;
-            for (int i = 0; i < m.Verteces.Count; i+=3) {
-                totalAo += m.Verteces[i].Ao;
-                if (m.Verteces[i].Ao < minAo) {
-                    minAo = m.Verteces[i].Ao;
-                }
-            }
-            totalAo /= m.Verteces.Count;
-
-            mesh.Verteces.Clear();
-            for (int i = 0; i < m.Verteces.Count; i+=3) {
-                if (m.Verteces[i].Ao >= totalAo) {
-                    mesh.Verteces.Add(m.Verteces[i]);
-                    mesh.Verteces.Add(m.Verteces[i+1]);
-                    mesh.Verteces.Add(m.Verteces[i+2]);
+            for (int i = 0; i < mesh.Verteces.Count; i += 3)
+            {
+                if (mesh.Verteces[i].Ao >= power)
+                {
+                    m.Verteces.Add(mesh.Verteces[i]);
+                    m.Verteces.Add(mesh.Verteces[i + 1]);
+                    m.Verteces.Add(mesh.Verteces[i + 2]);
                 }
             }
 
-            m.Verteces = mesh.Verteces;
-
-            m.Indeces.Clear();
             for (int i = 0; i < m.Verteces.Count; i++)
             {
                 m.Indeces.Add((uint)i);
